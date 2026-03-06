@@ -5,7 +5,7 @@
 - Engine-spec hardening remains landed and green.
 - Release-surface blockers are fixed locally and validated against a built wheel.
 - CLI UX surface for `init`, `doctor`, and `redact` is implemented locally and validated.
-- Hero asset tooling gate completed; capture tooling is unavailable in the current environment.
+- Hero asset batch completed with real screenshot and GIF captures.
 - Release readiness: `READY TO PUSH+TAG`
 
 ## Release-Surface Commits Landed
@@ -86,18 +86,18 @@
 
 ## Hero Asset Gate Status
 
-- Hero asset paths reserved: `docs/assets/report-demo.png`, `docs/assets/demo-flow.gif`
-- README placement wired above the first code block: `yes`
+- Hero asset paths landed: `docs/assets/report-demo.png`, `docs/assets/demo-flow.gif`
+- README placement above the first code block: `yes`
 - Capture template added: `docs/assets/CAPTURE_TEMPLATE.md`
-- Capture tool gate result:
-  - `vhs`: unavailable
-  - `playwright` CLI: unavailable
-  - `asciinema`: unavailable
-  - Python Playwright module: unavailable in both system Python and repo venv
-- Batch result: fallback-only
+- Capture notes added: `release/evidence/hero-assets/capture_notes.md`
+- Capture toolchain used:
+  - `vhs` for `docs/assets/demo-flow.gif`
+  - Python Playwright for `docs/assets/report-demo.png`
+- Batch result: complete
   - asset wiring landed
-  - capture notes/template landed
-  - real screenshot/GIF capture deferred
+  - real screenshot landed
+  - real GIF landed
+  - README now renders real media instead of placeholder slots
 
 ## Deferred
 
@@ -109,10 +109,6 @@
   Deferred. Not part of the CLI UX surface batch.
 - Extension work
   Deferred. Not part of the CLI UX surface batch.
-- Hero screenshot capture
-  Deferred. No supported screenshot tooling was available locally in this batch.
-- Hero GIF capture
-  Deferred. No supported terminal capture tooling was available locally in this batch.
 
 ## Active Invariants Held
 
