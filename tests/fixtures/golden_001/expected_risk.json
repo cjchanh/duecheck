@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0",
+  "engine_version": "0.2.0",
+  "source_adapter": "canvas",
+  "overall": "MEDIUM",
+  "course_risks": {
+    "English": "LOW",
+    "Philosophy": "MEDIUM",
+    "Health": "LOW"
+  },
+  "missing_risk": "LOW",
+  "flagged_courses": [
+    "Philosophy"
+  ],
+  "missing_count": 1
+}
