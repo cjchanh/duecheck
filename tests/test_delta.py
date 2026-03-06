@@ -54,6 +54,23 @@ def test_build_delta_de_escalated():
     assert delta["counts"]["de_escalated"] == 1
 
 
+def test_build_delta_matches_previous_entry_after_identity_upgrade():
+    current = [_entry("Essay 1", "English", "missing")]
+    current[0]["source_key"] = "canvas:101:555"
+    current[0]["item_id"] = ledger_item_id("English", "Essay 1", source_key="canvas:101:555")
+
+    legacy_item_id = ledger_item_id("English", "Essay 1")
+    previous = {
+        legacy_item_id: {
+            **_entry("Essay 1", "English", "due_7d"),
+            "item_id": legacy_item_id,
+            "source_key": "",
+        }
+    }
+    delta = build_delta(previous, current, "2026-03-05T12:00:00Z")
+    assert delta["counts"]["escalated"] == 1
+
+
 def test_build_delta_unchanged_active():
     entry = _entry("Essay 1", "English", "missing")
     item_id = entry["item_id"]

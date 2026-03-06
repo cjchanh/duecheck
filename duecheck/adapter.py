@@ -11,7 +11,7 @@ from urllib.parse import urljoin
 from urllib.request import Request
 from urllib.request import urlopen as _urlopen
 
-from .types import CourseInfo, LMSAdapter, parse_datetime
+from .types import AssignmentObservation, CourseInfo, LMSAdapter, parse_datetime
 
 
 def _parse_next_link(link_header: str) -> str | None:
@@ -90,6 +90,16 @@ def _assignment_is_submitted(assignment: dict) -> bool:
     return workflow in {"submitted", "graded", "pending_review", "complete"}
 
 
+def _canvas_assignment_source_key(course_id: int, assignment: dict) -> str | None:
+    for field in ("assignment_id", "id"):
+        raw_value = assignment.get(field)
+        if isinstance(raw_value, int):
+            return f"canvas:{course_id}:{raw_value}"
+        if isinstance(raw_value, str) and raw_value.strip():
+            return f"canvas:{course_id}:{raw_value.strip()}"
+    return None
+
+
 class CanvasAdapter:
     """Canvas LMS adapter implementing the LMSAdapter protocol."""
 
@@ -160,12 +170,12 @@ class CanvasAdapter:
 
     def get_unsubmitted_assignments(
         self, course_id: int, now: datetime | None = None
-    ) -> list[tuple[datetime, str, str]]:
-        """Return (due_dt, course_name, assignment_name) for unsubmitted items."""
+    ) -> list[AssignmentObservation]:
+        """Return unsubmitted assignments with stable source keys when available."""
         now = now or datetime.now(timezone.utc)
         courses = self.get_courses()
         course_name = next((c.name for c in courses if c.id == course_id), f"course:{course_id}")
-        items: list[tuple[datetime, str, str]] = []
+        items: list[AssignmentObservation] = []
 
         for a in self.get_assignments(course_id):
             if not isinstance(a, dict):
@@ -176,27 +186,32 @@ class CanvasAdapter:
             if due_dt is None:
                 continue
             name = str(a.get("name") or "Unnamed assignment")
-            items.append((due_dt, course_name, name))
+            items.append(AssignmentObservation(
+                source_key=_canvas_assignment_source_key(course_id, a),
+                due_at=due_dt,
+                course=course_name,
+                name=name,
+            ))
         return items
 
     def get_due_items(
         self, now: datetime | None = None
-    ) -> tuple[list[tuple[datetime, str, str]], list[tuple[datetime, str, str]]]:
+    ) -> tuple[list[AssignmentObservation], list[AssignmentObservation]]:
         """Return (due_48h_items, due_7d_items) across all courses."""
         now = now or datetime.now(timezone.utc)
-        due_48h: list[tuple[datetime, str, str]] = []
-        due_7d: list[tuple[datetime, str, str]] = []
+        due_48h: list[AssignmentObservation] = []
+        due_7d: list[AssignmentObservation] = []
 
         for course in self.get_courses():
-            for due_dt, course_name, name in self.get_unsubmitted_assignments(course.id, now):
-                if now < due_dt <= now + timedelta(hours=48):
-                    due_48h.append((due_dt, course_name, name))
-                elif now + timedelta(hours=48) < due_dt <= now + timedelta(days=7):
-                    due_7d.append((due_dt, course_name, name))
+            for observation in self.get_unsubmitted_assignments(course.id, now):
+                if now < observation.due_at <= now + timedelta(hours=48):
+                    due_48h.append(observation)
+                elif now + timedelta(hours=48) < observation.due_at <= now + timedelta(days=7):
+                    due_7d.append(observation)
 
         return (
-            sorted(due_48h, key=lambda x: (x[0], x[1].lower(), x[2].lower())),
-            sorted(due_7d, key=lambda x: (x[0], x[1].lower(), x[2].lower())),
+            sorted(due_48h, key=lambda x: (x.due_at, x.course.lower(), x.name.lower())),
+            sorted(due_7d, key=lambda x: (x.due_at, x.course.lower(), x.name.lower())),
         )
 
     def get_missing_submissions(self) -> list[dict]:

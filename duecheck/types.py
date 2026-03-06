@@ -6,7 +6,7 @@ import hashlib
 import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Protocol, runtime_checkable
+from typing import Mapping, Protocol, runtime_checkable
 
 LEDGER_STATUS_PRIORITY: dict[str, int] = {
     "missing": 3,
@@ -33,8 +33,17 @@ class CourseInfo:
 
 
 @dataclass(frozen=True)
+class AssignmentObservation:
+    source_key: str | None
+    due_at: datetime
+    course: str
+    name: str
+
+
+@dataclass(frozen=True)
 class LedgerEntry:
     item_id: str
+    source_key: str
     name: str
     course: str
     status: str
@@ -47,6 +56,7 @@ class LedgerEntry:
     def to_dict(self) -> dict[str, str]:
         return {
             "item_id": self.item_id,
+            "source_key": self.source_key,
             "name": self.name,
             "course": self.course,
             "status": self.status,
@@ -91,6 +101,55 @@ def format_due_date(due_dt: datetime | None) -> str:
     return due_dt.astimezone(timezone.utc).strftime("%Y-%m-%d")
 
 
-def ledger_item_id(course: str, name: str) -> str:
-    key = re.sub(r"\s+", " ", f"{course.strip().lower()}::{name.strip().lower()}").strip()
+def normalize_identity_text(value: str) -> str:
+    return re.sub(r"\s+", " ", value.strip().lower()).strip()
+
+
+def ledger_item_id(course: str, name: str, *, source_key: str | None = None) -> str:
+    if source_key:
+        key = "src::" + normalize_identity_text(source_key)
+    else:
+        key = f"{normalize_identity_text(course)}::{normalize_identity_text(name)}"
     return "asg_" + hashlib.sha1(key.encode("utf-8")).hexdigest()[:16]
+
+
+def ledger_item_candidates(course: str, name: str, *, source_key: str | None = None) -> list[str]:
+    candidates: list[str] = []
+    if source_key:
+        candidates.append(ledger_item_id(course, name, source_key=source_key))
+    legacy_id = ledger_item_id(course, name)
+    if legacy_id not in candidates:
+        candidates.append(legacy_id)
+    return candidates
+
+
+def match_entry(
+    entries: Mapping[str, dict],
+    *,
+    course: str,
+    name: str,
+    source_key: str | None = None,
+    item_id: str | None = None,
+) -> tuple[str | None, dict | None]:
+    candidate_ids: list[str] = []
+    if item_id:
+        candidate_ids.append(item_id)
+    for candidate_id in ledger_item_candidates(course, name, source_key=source_key):
+        if candidate_id not in candidate_ids:
+            candidate_ids.append(candidate_id)
+
+    for candidate_id in candidate_ids:
+        entry = entries.get(candidate_id)
+        if entry is not None:
+            return candidate_id, entry
+
+    norm_course = normalize_identity_text(course)
+    norm_name = normalize_identity_text(name)
+    for candidate_id, entry in entries.items():
+        if normalize_identity_text(str(entry.get("course") or "")) != norm_course:
+            continue
+        if normalize_identity_text(str(entry.get("name") or "")) != norm_name:
+            continue
+        return candidate_id, entry
+
+    return (None, None)
