@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import getpass
 import importlib.resources as resources
 import json
 import os
@@ -14,8 +15,10 @@ from pathlib import Path
 from typing import Callable
 
 from .adapter import CanvasAdapter
+from .config import DEFAULT_TOKEN_ENV, DuecheckConfig, config_path, resolve_runtime_settings, save_config
 from .delta import build_delta, render_delta_markdown
 from .ledger import build_ledger, load_existing_ledger, resolve_repair_pulled_ts
+from .redact import build_redacted_bundle
 from .report import write_report_html
 from .risk import compute_overall_risk
 from .types import delta_report_from_mapping, ledger_entry_from_mapping, risk_report_from_mapping, serialize_payload
@@ -157,6 +160,99 @@ def _open_report_in_browser(report_path: Path) -> bool:
         return False
 
 
+def _stdin_is_tty() -> bool:
+    isatty = getattr(sys.stdin, "isatty", None)
+    return bool(isatty()) if callable(isatty) else False
+
+
+def _prompt_text(prompt: str, *, default: str | None = None, input_fn: Callable[[str], str] = input) -> str:
+    rendered_prompt = prompt if default is None else f"{prompt}"
+    value = input_fn(rendered_prompt).strip()
+    if value:
+        return value
+    return default or ""
+
+
+def _prompt_yes_no(prompt: str, *, default: bool = False, input_fn: Callable[[str], str] = input) -> bool:
+    value = input_fn(prompt).strip().lower()
+    if not value:
+        return default
+    return value in {"y", "yes"}
+
+
+def _packaged_asset_paths() -> dict[str, Path]:
+    package_root = resources.files("duecheck")
+    return {
+        "demo_bundle": Path(str(package_root.joinpath("demo_data", "sample_bundle.json"))),
+        "ledger_schema": Path(str(package_root.joinpath("schemas", "ledger.schema.json"))),
+        "delta_schema": Path(str(package_root.joinpath("schemas", "delta.schema.json"))),
+        "risk_schema": Path(str(package_root.joinpath("schemas", "risk.schema.json"))),
+    }
+
+
+def _doctor_probe_directory(out_dir: Path) -> tuple[str, str]:
+    if out_dir.exists():
+        if not out_dir.is_dir():
+            return ("FAIL", f"{out_dir} exists but is not a directory")
+        try:
+            with tempfile.NamedTemporaryFile(dir=out_dir, prefix=".duecheck-doctor-", delete=True):
+                pass
+        except OSError as exc:
+            return ("FAIL", f"{out_dir} is not writable: {exc}")
+        return ("PASS", f"{out_dir} exists and is writable")
+
+    probe_parent = out_dir.parent
+    while not probe_parent.exists() and probe_parent != probe_parent.parent:
+        probe_parent = probe_parent.parent
+    if not probe_parent.exists():
+        return ("FAIL", f"{out_dir} is not creatable: no writable parent found")
+    try:
+        with tempfile.NamedTemporaryFile(dir=probe_parent, prefix=".duecheck-doctor-", delete=True):
+            pass
+    except OSError as exc:
+        return ("FAIL", f"{out_dir} is not creatable from {probe_parent}: {exc}")
+    return ("PASS", f"{out_dir} does not exist yet but is creatable from {probe_parent}")
+
+
+def _doctor_artifact_status(out_dir: Path) -> tuple[str, str]:
+    artifact_paths = [out_dir / name for name in ARTIFACT_JSON_FILES]
+    existing = [path.exists() for path in artifact_paths]
+    if not any(existing):
+        return ("WARN", f"No artifacts found in {out_dir}")
+    if not all(existing):
+        missing = [path.name for path in artifact_paths if not path.exists()]
+        return ("FAIL", f"Incomplete artifact bundle: missing {', '.join(missing)}")
+    try:
+        results = validate_artifacts(out_dir)
+    except Exception as exc:
+        return ("FAIL", str(exc))
+    failures = {name: errors for name, errors in results.items() if errors}
+    if failures:
+        summary = ", ".join(f"{name}={len(errors)}" for name, errors in failures.items())
+        return ("FAIL", f"Artifact validation failed ({summary})")
+    return ("PASS", f"Artifacts validate in {out_dir}")
+
+
+def _doctor_packaged_assets_status() -> tuple[str, str]:
+    try:
+        assets = _packaged_asset_paths()
+    except Exception as exc:  # pragma: no cover - importlib.resources failure is environment-specific
+        return ("FAIL", f"Failed to resolve packaged assets: {exc}")
+    missing = [label for label, path in assets.items() if not path.is_file()]
+    if missing:
+        return ("FAIL", f"Missing packaged assets: {', '.join(missing)}")
+    return ("PASS", "Packaged demo bundle and schemas are accessible")
+
+
+def _doctor_exit_code(checks: list[dict[str, str]]) -> int:
+    statuses = {check["status"] for check in checks}
+    if "FAIL" in statuses:
+        return 2
+    if "WARN" in statuses:
+        return 1
+    return 0
+
+
 def _available_run_snapshots(out_dir: Path) -> list[tuple[str, Path]]:
     runs_dir = out_dir / "runs"
     if not runs_dir.exists():
@@ -200,23 +296,29 @@ def parse_pull_args(argv: list[str] | None = None) -> argparse.Namespace:
         prog="duecheck",
         description="Canvas early warning engine — pull assignments and compute risk.",
         epilog=(
-            "Extra commands: 'duecheck demo --out-dir DIR', "
+            "Extra commands: 'duecheck init', 'duecheck demo --out-dir DIR', "
+            "'duecheck doctor --out-dir DIR', 'duecheck redact --out-dir DIR --dest DIR', "
             "'duecheck report --html --out-dir DIR', and 'duecheck verify --out-dir DIR'."
         ),
     )
     parser.add_argument(
         "--canvas-url",
-        default=os.environ.get("CANVAS_URL", ""),
+        default=None,
         help="Canvas base URL (or set CANVAS_URL env var)",
     )
     parser.add_argument(
         "--token-env",
-        default="CANVAS_TOKEN",
+        default=None,
         help="Environment variable name containing Canvas API token",
     )
     parser.add_argument(
+        "--canvas-token",
+        default=None,
+        help="Canvas API token to use directly for this run",
+    )
+    parser.add_argument(
         "--out-dir",
-        default=".",
+        default=None,
         help="Output directory for ledger, delta, and risk files",
     )
     parser.add_argument(
@@ -228,7 +330,7 @@ def parse_pull_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--grade-threshold",
         type=float,
-        default=80.0,
+        default=None,
         help="Grade threshold for risk scoring (default: 80.0)",
     )
     parser.add_argument(
@@ -246,6 +348,34 @@ def parse_pull_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--fail-on",
         default="",
         help="Exit 2 when a risk or delta threshold is breached (HIGH, MEDIUM, escalated, missing).",
+    )
+    return parser.parse_args(argv)
+
+
+def parse_init_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        prog="duecheck init",
+        description="Create a local DueCheck config with CLI defaults.",
+    )
+    parser.add_argument("--canvas-url", default=None, help="Default Canvas base URL")
+    parser.add_argument("--canvas-token", default=None, help="Canvas API token to optionally store in config")
+    parser.add_argument("--token-env", default=None, help="Environment variable name to read the Canvas token from")
+    parser.add_argument("--out-dir", default=None, help="Default output directory")
+    parser.add_argument(
+        "--grade-threshold",
+        type=float,
+        default=None,
+        help="Default risk threshold to save in config",
+    )
+    parser.add_argument(
+        "--yes",
+        action="store_true",
+        help="Run non-interactively; all required values must be provided as flags",
+    )
+    parser.add_argument(
+        "--print-path",
+        action="store_true",
+        help="Print the config path and exit",
     )
     return parser.parse_args(argv)
 
@@ -271,6 +401,30 @@ def parse_demo_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         dest="open_browser",
         help="Open the generated report in your default browser",
+    )
+    return parser.parse_args(argv)
+
+
+def parse_doctor_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        prog="duecheck doctor",
+        description="Run local diagnostics for config, artifacts, and packaged assets.",
+    )
+    parser.add_argument(
+        "--out-dir",
+        default=None,
+        help="Directory to inspect for DueCheck artifacts",
+    )
+    parser.add_argument(
+        "--check-auth",
+        action="store_true",
+        help="Run a lightweight Canvas auth check using the resolved URL and token",
+    )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        dest="json_output",
+        help="Output diagnostics as JSON",
     )
     return parser.parse_args(argv)
 
@@ -310,6 +464,30 @@ def parse_report_args(argv: list[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
+def parse_redact_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        prog="duecheck redact",
+        description="Write a redacted bug-report bundle from an existing output directory.",
+    )
+    parser.add_argument(
+        "--out-dir",
+        required=True,
+        help="Source directory containing DueCheck artifacts",
+    )
+    parser.add_argument(
+        "--dest",
+        required=True,
+        help="Destination directory for the redacted bundle",
+    )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        dest="json_output",
+        help="Output summary as JSON",
+    )
+    return parser.parse_args(argv)
+
+
 def parse_verify_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="duecheck verify",
@@ -327,6 +505,144 @@ def parse_verify_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Output validation results as JSON",
     )
     return parser.parse_args(argv)
+
+
+def run_init(
+    *,
+    canvas_url: str | None,
+    canvas_token: str | None,
+    token_env: str | None,
+    out_dir: str | None,
+    grade_threshold: float | None,
+    yes: bool,
+    print_path: bool,
+    env: dict[str, str] | None = None,
+    stdin_is_tty: bool | None = None,
+    input_fn: Callable[[str], str] = input,
+    getpass_fn: Callable[[str], str] = getpass.getpass,
+    platform_name: str | None = None,
+) -> dict:
+    env_map = os.environ.copy() if env is None else dict(env)
+    resolved_config_path = config_path(env_map)
+    if print_path:
+        return {"status": "config_path", "config_path": str(resolved_config_path)}
+
+    is_tty = _stdin_is_tty() if stdin_is_tty is None else stdin_is_tty
+    if not is_tty and not yes:
+        raise RuntimeError("Non-interactive init requires --yes plus explicit flags.")
+
+    if yes:
+        missing: list[str] = []
+        if not canvas_url or not canvas_url.strip():
+            missing.append("--canvas-url")
+        if not out_dir or not out_dir.strip():
+            missing.append("--out-dir")
+        if not (token_env and token_env.strip()) and not (canvas_token and canvas_token.strip()):
+            missing.append("--token-env or --canvas-token")
+        if missing:
+            raise RuntimeError(
+                "Non-interactive init requires --yes plus explicit flags: " + ", ".join(missing)
+            )
+        resolved_canvas_url = canvas_url.strip()
+        resolved_out_dir = out_dir.strip()
+        resolved_token_env = (token_env or "").strip()
+        stored_token = (canvas_token or "").strip()
+        resolved_grade_threshold = float(grade_threshold) if grade_threshold is not None else None
+    else:
+        resolved_canvas_url = canvas_url.strip() if canvas_url else _prompt_text("Canvas URL: ", input_fn=input_fn)
+        if not resolved_canvas_url:
+            raise RuntimeError("Canvas URL is required")
+
+        stored_token = ""
+        resolved_token_env = (token_env or "").strip()
+        direct_token = (canvas_token or "").strip()
+        if direct_token:
+            if _prompt_yes_no("Store token in config as plaintext? [y/N]: ", input_fn=input_fn):
+                stored_token = direct_token
+            else:
+                resolved_token_env = resolved_token_env or _prompt_text(
+                    "Token env name [CANVAS_TOKEN]: ",
+                    default=DEFAULT_TOKEN_ENV,
+                    input_fn=input_fn,
+                )
+        elif resolved_token_env:
+            pass
+        else:
+            token_mode = _prompt_text(
+                "Token source [env/token]: ",
+                default="env",
+                input_fn=input_fn,
+            ).lower()
+            if token_mode.startswith("t"):
+                entered_token = getpass_fn("Canvas token (input hidden): ").strip()
+                if not entered_token:
+                    raise RuntimeError("Canvas token is required")
+                if _prompt_yes_no("Store token in config as plaintext? [y/N]: ", input_fn=input_fn):
+                    stored_token = entered_token
+                else:
+                    resolved_token_env = _prompt_text(
+                        "Token env name [CANVAS_TOKEN]: ",
+                        default=DEFAULT_TOKEN_ENV,
+                        input_fn=input_fn,
+                    )
+            else:
+                resolved_token_env = _prompt_text(
+                    "Token env name [CANVAS_TOKEN]: ",
+                    default=DEFAULT_TOKEN_ENV,
+                    input_fn=input_fn,
+                )
+
+        if not stored_token and not resolved_token_env:
+            resolved_token_env = DEFAULT_TOKEN_ENV
+
+        resolved_out_dir = out_dir.strip() if out_dir else _prompt_text(
+            "Default out_dir [.]: ",
+            default=".",
+            input_fn=input_fn,
+        )
+        if not resolved_out_dir:
+            raise RuntimeError("Default out_dir is required")
+        if grade_threshold is not None:
+            resolved_grade_threshold = float(grade_threshold)
+        else:
+            grade_text = _prompt_text(
+                "Grade threshold [80.0, blank to omit]: ",
+                default="",
+                input_fn=input_fn,
+            )
+            if grade_text:
+                try:
+                    resolved_grade_threshold = float(grade_text)
+                except ValueError as exc:
+                    raise RuntimeError("Grade threshold must be numeric") from exc
+            else:
+                resolved_grade_threshold = None
+
+    config = DuecheckConfig(
+        canvas_url=resolved_canvas_url,
+        canvas_token=stored_token,
+        out_dir=resolved_out_dir,
+        grade_threshold=resolved_grade_threshold,
+        token_env=resolved_token_env,
+    )
+    save_result = save_config(config, path=resolved_config_path, env=env_map, platform_name=platform_name)
+    for warning in save_result.warnings:
+        print(f"WARN: {warning}", file=sys.stderr)
+
+    saved_fields = ["canvas_url", "out_dir"]
+    if config.grade_threshold is not None:
+        saved_fields.append("grade_threshold")
+    if config.token_env:
+        saved_fields.append("token_env")
+    if config.canvas_token:
+        saved_fields.append("canvas_token")
+
+    return {
+        "status": "initialized",
+        "config_path": str(save_result.path),
+        "saved_fields": saved_fields,
+        "token_storage": "config" if config.canvas_token else f"env:{config.token_env or DEFAULT_TOKEN_ENV}",
+    }
 
 
 def run_pull(
@@ -401,6 +717,119 @@ def run_pull(
         "delta_cleared": delta_payload["counts"]["cleared"],
         "risk_overall": risk_payload["overall"],
     }
+
+
+def run_doctor(
+    out_dir: Path,
+    *,
+    check_auth: bool = False,
+    env: dict[str, str] | None = None,
+    urlopen_fn: Callable | None = None,
+) -> tuple[dict, int]:
+    env_map = os.environ.copy() if env is None else dict(env)
+    resolved_config_path = config_path(env_map)
+    checks: list[dict[str, str]] = []
+
+    try:
+        loaded_config = resolve_runtime_settings(
+            canvas_url=None,
+            canvas_token=None,
+            token_env=None,
+            out_dir=str(out_dir),
+            course_filter=None,
+            grade_threshold=None,
+            env=env_map,
+            path=resolved_config_path,
+        )
+        if loaded_config.config_present:
+            checks.append({
+                "name": "config",
+                "status": "PASS",
+                "detail": f"Loaded config from {loaded_config.config_path}",
+            })
+        else:
+            checks.append({
+                "name": "config",
+                "status": "WARN",
+                "detail": f"No config found at {loaded_config.config_path}",
+            })
+    except RuntimeError as exc:
+        loaded_config = None
+        checks.append({
+            "name": "config",
+            "status": "FAIL",
+            "detail": str(exc),
+        })
+
+    if loaded_config is None:
+        token_source = ""
+        token_env_name = DEFAULT_TOKEN_ENV
+    else:
+        token_source = loaded_config.token_source
+        token_env_name = loaded_config.token_env_name
+
+    if token_source:
+        checks.append({
+            "name": "token",
+            "status": "PASS",
+            "detail": f"Resolved token source: {token_source}",
+        })
+    else:
+        checks.append({
+            "name": "token",
+            "status": "WARN",
+            "detail": f"No token resolved (checked {token_env_name})",
+        })
+
+    out_status, out_detail = _doctor_probe_directory(out_dir)
+    checks.append({"name": "out_dir", "status": out_status, "detail": out_detail})
+
+    asset_status, asset_detail = _doctor_packaged_assets_status()
+    checks.append({"name": "assets", "status": asset_status, "detail": asset_detail})
+
+    artifact_status, artifact_detail = _doctor_artifact_status(out_dir)
+    checks.append({"name": "artifacts", "status": artifact_status, "detail": artifact_detail})
+
+    if check_auth:
+        if loaded_config is None or not loaded_config.canvas_url or not loaded_config.token:
+            checks.append({
+                "name": "auth",
+                "status": "FAIL",
+                "detail": "Auth check requested but URL/token could not be resolved",
+            })
+        else:
+            try:
+                adapter_kwargs: dict[str, object] = {}
+                if urlopen_fn is not None:
+                    adapter_kwargs["urlopen_fn"] = urlopen_fn
+                adapter = CanvasAdapter(
+                    loaded_config.canvas_url,
+                    loaded_config.token,
+                    **adapter_kwargs,
+                )
+                course_count = len(adapter.get_courses())
+            except Exception as exc:
+                checks.append({
+                    "name": "auth",
+                    "status": "FAIL",
+                    "detail": str(exc),
+                })
+            else:
+                checks.append({
+                    "name": "auth",
+                    "status": "PASS",
+                    "detail": f"Canvas auth succeeded ({course_count} courses)",
+                })
+
+    exit_code = _doctor_exit_code(checks)
+    return (
+        {
+            "config_path": str(resolved_config_path),
+            "out_dir": str(out_dir),
+            "checks": checks,
+        },
+        exit_code,
+    )
 
 
 def run_repair(out_dir: Path) -> dict:
@@ -535,6 +964,50 @@ def run_report(
     }
 
 
+def run_redact(out_dir: Path, dest: Path) -> dict:
+    bundle = build_redacted_bundle(out_dir)
+    ledger_payload = serialize_payload(bundle.ledger)
+    delta_payload = serialize_payload(bundle.delta)
+    risk_payload = serialize_payload(bundle.risk)
+    _validate_payload_bundle(ledger_payload, delta_payload, risk_payload)
+
+    dest.mkdir(parents=True, exist_ok=True)
+    _write_artifact_bundle(
+        dest,
+        pulled_ts=bundle.pulled_at,
+        ledger=ledger_payload,
+        delta=delta_payload,
+        changes_md=bundle.changes_md,
+        risk=risk_payload,
+    )
+    report_path = write_report_html(dest)
+    required_outputs = {
+        "ledger.json",
+        "delta.json",
+        "risk.json",
+        "changes.md",
+        "pulled_at.txt",
+        "report.html",
+    }
+    missing_outputs = [name for name in required_outputs if not (dest / name).exists()]
+    if not report_path.exists() or missing_outputs:
+        detail = ", ".join(sorted(set(missing_outputs + (["report.html"] if not report_path.exists() else []))))
+        raise RuntimeError(f"Redacted bundle is incomplete: missing {detail}")
+
+    results, exit_code = run_verify(dest)
+    if exit_code != 0:
+        failures = {name: errors for name, errors in results.items() if errors}
+        raise RuntimeError(f"Redacted bundle failed validation: {failures}")
+
+    return {
+        "status": "redacted",
+        "source_out_dir": str(out_dir),
+        "dest": str(dest),
+        "report_html": str(report_path),
+        "ledger_entries": len(ledger_payload),
+    }
+
+
 def run_verify(out_dir: Path) -> tuple[dict[str, list[str]], int]:
     results = validate_artifacts(out_dir)
     exit_code = 0 if all(not errors for errors in results.values()) else 1
@@ -565,6 +1038,30 @@ def _should_exit_on_threshold(
 def main(argv: list[str] | None = None) -> int:
     argv = list(argv) if argv is not None else sys.argv[1:]
 
+    if argv and argv[0] == "init":
+        args = parse_init_args(argv[1:])
+        try:
+            result = run_init(
+                canvas_url=args.canvas_url,
+                canvas_token=args.canvas_token,
+                token_env=args.token_env,
+                out_dir=args.out_dir,
+                grade_threshold=args.grade_threshold,
+                yes=args.yes,
+                print_path=args.print_path,
+            )
+        except Exception as exc:
+            print(f"ERROR: {exc}", file=sys.stderr)
+            return 1
+        if result["status"] == "config_path":
+            print(result["config_path"])
+        else:
+            print(
+                f"INIT: wrote {result['config_path']} "
+                f"fields={','.join(result['saved_fields'])} token={result['token_storage']}"
+            )
+        return 0
+
     if argv and argv[0] == "demo":
         args = parse_demo_args(argv[1:])
         out_dir = Path(args.out_dir).expanduser().resolve()
@@ -580,6 +1077,50 @@ def main(argv: list[str] | None = None) -> int:
                 f"DEMO: wrote sample artifacts to {result['out_dir']}, "
                 f"report={result['report_html']}, risk={result['risk_overall']}"
             )
+        return 0
+
+    if argv and argv[0] == "doctor":
+        args = parse_doctor_args(argv[1:])
+        if args.out_dir:
+            out_dir = Path(args.out_dir).expanduser().resolve()
+        else:
+            try:
+                resolved_settings = resolve_runtime_settings(
+                    canvas_url=None,
+                    canvas_token=None,
+                    token_env=None,
+                    out_dir=None,
+                    course_filter=None,
+                    grade_threshold=None,
+                )
+                out_dir = Path(resolved_settings.out_dir).expanduser().resolve()
+            except Exception:
+                out_dir = Path(".").expanduser().resolve()
+        try:
+            result, exit_code = run_doctor(out_dir, check_auth=args.check_auth)
+        except Exception as exc:
+            print(f"ERROR: {exc}", file=sys.stderr)
+            return 2
+        if args.json_output:
+            print(json.dumps(result, indent=2))
+        else:
+            for check in result["checks"]:
+                print(f"{check['status']}: {check['name']} | {check['detail']}")
+        return exit_code
+
+    if argv and argv[0] == "redact":
+        args = parse_redact_args(argv[1:])
+        out_dir = Path(args.out_dir).expanduser().resolve()
+        dest = Path(args.dest).expanduser().resolve()
+        try:
+            result = run_redact(out_dir, dest)
+        except Exception as exc:
+            print(f"ERROR: {exc}", file=sys.stderr)
+            return 1
+        if args.json_output:
+            print(json.dumps(result, indent=2))
+        else:
+            print(f"REDACT: wrote {result['dest']} report={result['report_html']}")
         return 0
 
     if argv and argv[0] == "verify":
@@ -624,7 +1165,19 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     args = parse_pull_args(argv)
-    out_dir = Path(args.out_dir).expanduser().resolve()
+    try:
+        settings = resolve_runtime_settings(
+            canvas_url=args.canvas_url,
+            canvas_token=args.canvas_token,
+            token_env=args.token_env,
+            out_dir=args.out_dir,
+            course_filter=args.course_filter,
+            grade_threshold=args.grade_threshold,
+        )
+    except Exception as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+    out_dir = Path(settings.out_dir).expanduser().resolve()
 
     if args.repair:
         result = run_repair(out_dir)
@@ -641,14 +1194,20 @@ def main(argv: list[str] | None = None) -> int:
             print(f"REPAIR: {result.get('reason', result['status'])}")
         return 0
 
-    canvas_url = args.canvas_url
+    canvas_url = settings.canvas_url
     if not canvas_url:
-        print("ERROR: --canvas-url required (or set CANVAS_URL env var)", file=sys.stderr)
+        print(
+            "ERROR: Canvas URL not resolved. Run 'duecheck init' or set CANVAS_URL / --canvas-url.",
+            file=sys.stderr,
+        )
         return 1
 
-    token = os.environ.get(args.token_env)
+    token = settings.token
     if not token:
-        print(f"ERROR: env var '{args.token_env}' is not set", file=sys.stderr)
+        print(
+            "ERROR: Canvas token not resolved. Run 'duecheck init', set CANVAS_TOKEN, or use --token-env.",
+            file=sys.stderr,
+        )
         return 1
 
     try:
@@ -656,8 +1215,8 @@ def main(argv: list[str] | None = None) -> int:
             canvas_url=canvas_url,
             token=token,
             out_dir=out_dir,
-            course_filter=args.course_filter,
-            grade_threshold=args.grade_threshold,
+            course_filter=settings.course_filter,
+            grade_threshold=settings.grade_threshold,
         )
     except Exception as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
