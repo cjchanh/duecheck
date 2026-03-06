@@ -6,7 +6,11 @@
 - Release-surface blockers are fixed locally and validated against a built wheel.
 - CLI UX surface for `init`, `doctor`, and `redact` is implemented locally and validated.
 - Hero asset batch completed with real screenshot and GIF captures.
-- Release readiness: `READY TO PUSH+TAG`
+- Public release completed:
+  - GitHub `main` pushed
+  - public README media render verified
+  - tag `v0.2.0` pushed
+  - PyPI publish completed
 
 ## Release-Surface Commits Landed
 
@@ -57,8 +61,11 @@
 - Schemas relocated: `yes`
 - `--open` landed: `yes`
 - Local wheel smoke test passed: `yes`
-- Repo state target: clean after final docs closeout
-- Release readiness: `READY TO PUSH+TAG`
+- Public release status: `LIVE`
+- GitHub repo: `https://github.com/cjchanh/duecheck`
+- PyPI package: `https://pypi.org/project/duecheck/0.2.0/`
+- Release workflow fix landed:
+  - `e90bc37` — `ci(release): fix download-artifact pin`
 
 ## CLI UX Surface Status
 
@@ -101,14 +108,21 @@
 
 ## Deferred
 
-- Real README screenshot asset
-  Deferred. The README now has the required placeholder comment; the actual image capture can be added as a follow-up docs pass.
-- Push/tag execution
-  Deferred by explicit session boundary. This run stops at local release readiness and does not push or tag.
 - Scheduling work
-  Deferred. Not scoped to CLI UX surface.
+  Deferred. This is the next delivery-shell layer for passive daily use.
 - Extension work
-  Deferred. Not scoped to CLI UX surface.
+  Deferred. This remains a separate wrapper project around the hardened engine contract.
+
+## Next Planned Work
+
+- Scheduling/passive daily use
+  - local install surface for recurring sync and report refresh
+  - macOS-first, then Linux
+- Extension wrapper
+  - separate project built on the current schemas, fixtures, and report language
+  - keep browser/runtime concerns out of the Python engine
+- Real-user evidence loop
+  - use `doctor` and `redact` to collect reproducible bug reports and real usage signal before widening scope
 
 ## Active Invariants Held
 
