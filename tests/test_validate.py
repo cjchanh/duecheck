@@ -86,7 +86,7 @@ def test_invalid_artifacts_do_not_overwrite_last_good_artifacts(tmp_path: Path):
         except RuntimeError as exc:
             assert "artifact validation failed" in str(exc)
         else:
-            raise AssertionError("Expected run_demo to fail closed")
+            raise AssertionError("Expected run_demo to reject invalid artifacts")
 
     assert (tmp_path / "ledger.json").read_text() == before["ledger"]
     assert (tmp_path / "delta.json").read_text() == before["delta"]

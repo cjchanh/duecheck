@@ -9,7 +9,5 @@ build/
 .ruff_cache/
 .env
 .env.*
-***REMOVED***
 *.pem
 *.key
-release/evidence/
