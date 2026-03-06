@@ -5,16 +5,20 @@ from __future__ import annotations
 import json
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 from .types import (
-    LEDGER_CONFIDENCE,
+    LEDGER_SEVERITY_LABEL,
     LEDGER_STATUS_PRIORITY,
     AssignmentObservation,
+    CourseInfo,
+    LedgerEntry,
     format_due_at,
     format_due_date,
-    ledger_item_id,
+    ledger_entry_from_mapping,
     match_entry,
     parse_datetime,
+    serialize_payload,
 )
 
 
@@ -33,33 +37,13 @@ def load_existing_ledger(manifest_path: Path) -> dict[str, dict]:
     for item in data:
         if not isinstance(item, dict):
             continue
-        name = str(item.get("name") or item.get("assignment_name") or "").strip()
-        course = str(item.get("course") or "").strip()
-        if not name or not course:
+        entry = ledger_entry_from_mapping(item)
+        if not entry.name or not entry.course:
             continue
-        source_key = str(item.get("source_key") or "")
-        item_id = str(item.get("item_id") or ledger_item_id(course, name, source_key=source_key or None))
-        due_at = str(item.get("due_at") or "")
-        date_text = str(item.get("date") or "")
-        if not date_text and due_at:
-            parsed = parse_datetime(due_at)
-            if parsed is not None:
-                date_text = format_due_date(parsed)
-        current = {
-            "item_id": item_id,
-            "source_key": source_key,
-            "name": name,
-            "course": course,
-            "status": str(item.get("status") or "not_observed"),
-            "first_seen": str(item.get("first_seen") or item.get("last_seen") or ""),
-            "last_seen": str(item.get("last_seen") or item.get("first_seen") or ""),
-            "due_at": due_at,
-            "date": date_text,
-            "confidence": str(item.get("confidence") or "low"),
-        }
-        previous = existing.get(item_id)
-        if previous is None or current["last_seen"] >= previous.get("last_seen", ""):
-            existing[item_id] = current
+        current = serialize_payload(entry)
+        previous = existing.get(entry.item_id)
+        if previous is None or str(current["last_seen"]) >= str(previous.get("last_seen", "")):
+            existing[entry.item_id] = current
     return existing
 
 
@@ -71,18 +55,30 @@ def merge_current_observation(
     due_dt: datetime | None,
     status: str,
     source_key: str | None = None,
+    course_info: CourseInfo | None = None,
+    source_adapter: str = "canvas",
 ) -> None:
     """Merge a single observation into the current observed set."""
-    item_id = ledger_item_id(course, name, source_key=source_key)
+    entry = ledger_entry_from_mapping(
+        {
+            "source_key": source_key or "",
+            "name": name,
+            "course": course,
+            "status": status,
+            "due_at": format_due_at(due_dt),
+            "date": format_due_date(due_dt),
+            "severity_label": LEDGER_SEVERITY_LABEL[status],
+            "course_score": course_info.score if course_info is not None else None,
+            "course_grade": course_info.grade if course_info is not None and course_info.grade else "",
+            "source_adapter": source_adapter,
+        },
+        default_source_adapter=source_adapter,
+    )
+    candidate = serialize_payload(entry)
+    item_id = str(candidate["item_id"])
     candidate = {
+        **candidate,
         "item_id": item_id,
-        "source_key": source_key or "",
-        "name": name,
-        "course": course,
-        "status": status,
-        "due_at": format_due_at(due_dt),
-        "date": format_due_date(due_dt),
-        "confidence": LEDGER_CONFIDENCE[status],
     }
     matched_id, current = match_entry(
         observed,
@@ -101,6 +97,9 @@ def merge_current_observation(
         observed[item_id] = current
     if source_key and not current.get("source_key"):
         current["source_key"] = source_key
+    if course_info is not None:
+        current["course_score"] = course_info.score
+        current["course_grade"] = course_info.grade or ""
     if LEDGER_STATUS_PRIORITY[status] > LEDGER_STATUS_PRIORITY[current["status"]]:
         observed[item_id] = candidate
         return
@@ -109,15 +108,21 @@ def merge_current_observation(
         current["date"] = candidate["date"]
 
 
-def sort_ledger(ledger: list[dict]) -> list[dict]:
+def _entry_value(item: LedgerEntry | dict[str, Any], key: str) -> Any:
+    if isinstance(item, LedgerEntry):
+        return getattr(item, key, "")
+    return item.get(key)
+
+
+def sort_ledger(ledger: list[LedgerEntry | dict[str, Any]]) -> list[LedgerEntry | dict[str, Any]]:
     """Sort ledger entries: active first by due date, then inactive."""
     return sorted(
         ledger,
         key=lambda item: (
-            1 if item.get("status") == "not_observed" else 0,
-            item.get("due_at") or item.get("date") or "9999-12-31T23:59:59Z",
-            str(item.get("course") or "").lower(),
-            str(item.get("name") or "").lower(),
+            1 if _entry_value(item, "status") == "not_observed" else 0,
+            _entry_value(item, "due_at") or _entry_value(item, "date") or "9999-12-31T23:59:59Z",
+            str(_entry_value(item, "course") or "").lower(),
+            str(_entry_value(item, "name") or "").lower(),
         ),
     )
 
@@ -129,12 +134,16 @@ def build_ledger(
     missing_raw: list[dict],
     course_ids: set[int],
     course_name_by_id: dict[int, str],
+    course_snapshot_by_name: dict[str, CourseInfo] | None = None,
     existing_ledger: dict[str, dict] | None = None,
-) -> list[dict]:
+    *,
+    source_adapter: str = "canvas",
+) -> list[LedgerEntry]:
     """Build the assignment ledger from current observations and previous state."""
     previous = existing_ledger if existing_ledger is not None else {}
     current_observed: dict[str, dict] = {}
     matched_previous_ids: set[str] = set()
+    course_snapshot_by_name = course_snapshot_by_name or {}
 
     for observation in due_48_items:
         merge_current_observation(
@@ -144,6 +153,8 @@ def build_ledger(
             due_dt=observation.due_at,
             status="due_48h",
             source_key=observation.source_key,
+            course_info=course_snapshot_by_name.get(observation.course),
+            source_adapter=source_adapter,
         )
     for observation in due_7_items:
         merge_current_observation(
@@ -153,6 +164,8 @@ def build_ledger(
             due_dt=observation.due_at,
             status="due_7d",
             source_key=observation.source_key,
+            course_info=course_snapshot_by_name.get(observation.course),
+            source_adapter=source_adapter,
         )
     for item in missing_raw:
         if not isinstance(item, dict):
@@ -175,9 +188,11 @@ def build_ledger(
             due_dt=parse_datetime(item.get("due_at")),
             status="missing",
             source_key=source_key,
+            course_info=course_snapshot_by_name.get(course),
+            source_adapter=source_adapter,
         )
 
-    ledger: list[dict] = []
+    ledger: list[LedgerEntry] = []
     for item_id, current in current_observed.items():
         previous_id, previous_item = match_entry(
             previous,
@@ -195,22 +210,38 @@ def build_ledger(
         if not entry.get("due_at") and previous_item.get("due_at"):
             entry["due_at"] = str(previous_item.get("due_at") or "")
             entry["date"] = str(previous_item.get("date") or "")
-        ledger.append(entry)
+        entry.setdefault("schema_version", previous_item.get("schema_version") or current.get("schema_version"))
+        entry.setdefault("engine_version", previous_item.get("engine_version") or current.get("engine_version"))
+        entry["source_adapter"] = str(
+            current.get("source_adapter") or previous_item.get("source_adapter") or source_adapter
+        )
+        if "course_score" not in entry and previous_item.get("course_score") is not None:
+            entry["course_score"] = previous_item.get("course_score")
+        if not entry.get("course_grade") and previous_item.get("course_grade"):
+            entry["course_grade"] = previous_item.get("course_grade")
+        ledger.append(ledger_entry_from_mapping(entry, default_source_adapter=source_adapter))
 
     for item_id, previous_item in previous.items():
         if item_id in current_observed or item_id in matched_previous_ids:
             continue
         carried = previous_item.copy()
         carried["status"] = "not_observed"
-        carried["confidence"] = LEDGER_CONFIDENCE["not_observed"]
+        carried["severity_label"] = LEDGER_SEVERITY_LABEL["not_observed"]
         carried["first_seen"] = str(carried.get("first_seen") or carried.get("last_seen") or pulled_ts)
         carried["last_seen"] = str(carried.get("last_seen") or carried.get("first_seen") or pulled_ts)
         carried["source_key"] = str(carried.get("source_key") or "")
         carried["due_at"] = str(carried.get("due_at") or "")
         carried["date"] = str(carried.get("date") or "")
-        ledger.append(carried)
+        carried["source_adapter"] = str(carried.get("source_adapter") or source_adapter)
+        ledger.append(ledger_entry_from_mapping(carried, default_source_adapter=source_adapter))
 
-    return sort_ledger(ledger)
+    sorted_ledger = sort_ledger(ledger)
+    return [
+        item
+        if isinstance(item, LedgerEntry)
+        else ledger_entry_from_mapping(item, default_source_adapter=source_adapter)
+        for item in sorted_ledger
+    ]
 
 
 def resolve_repair_pulled_ts(timestamp_path: Path, current_ledger: list[dict]) -> str:

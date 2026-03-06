@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DueCheck Risk Report",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "engine_version",
+    "source_adapter",
+    "overall",
+    "course_risks",
+    "missing_risk",
+    "flagged_courses",
+    "missing_count"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "const": "1.0" },
+    "engine_version": { "type": "string" },
+    "source_adapter": { "type": "string" },
+    "overall": { "type": "string" },
+    "course_risks": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "missing_risk": { "type": "string" },
+    "flagged_courses": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "missing_count": { "type": "integer" }
+  },
+  "additionalProperties": true
+}

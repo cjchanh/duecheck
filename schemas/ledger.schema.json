@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DueCheck Ledger",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": [
+      "item_id",
+      "source_key",
+      "name",
+      "course",
+      "status",
+      "first_seen",
+      "last_seen",
+      "due_at",
+      "date",
+      "severity_label",
+      "schema_version",
+      "engine_version",
+      "source_adapter"
+    ],
+    "properties": {
+      "item_id": { "type": "string" },
+      "source_key": { "type": "string" },
+      "name": { "type": "string" },
+      "course": { "type": "string" },
+      "status": { "type": "string" },
+      "first_seen": { "type": "string" },
+      "last_seen": { "type": "string" },
+      "due_at": { "type": "string" },
+      "date": { "type": "string" },
+      "severity_label": { "type": "string" },
+      "schema_version": { "type": "string", "const": "1.0" },
+      "engine_version": { "type": "string" },
+      "source_adapter": { "type": "string" },
+      "course_score": { "type": ["number", "null"] },
+      "course_grade": { "type": "string" }
+    },
+    "additionalProperties": true
+  }
+}

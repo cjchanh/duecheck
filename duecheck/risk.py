@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from .types import CourseInfo, parse_datetime
+from .types import ArtifactMeta, CourseInfo, RiskReport, parse_datetime
 
 
 def score_course_risk(course: CourseInfo, *, threshold: float = 80.0) -> str:
@@ -61,7 +61,8 @@ def compute_overall_risk(
     now: datetime | None = None,
     *,
     grade_threshold: float = 80.0,
-) -> dict:
+    source_adapter: str = "canvas",
+) -> RiskReport:
     """Compute overall academic risk from courses and missing items."""
     now = now or datetime.now(timezone.utc)
 
@@ -71,10 +72,11 @@ def compute_overall_risk(
 
     flagged_courses = [name for name, level in course_risks.items() if level in ("HIGH", "MEDIUM")]
 
-    return {
-        "overall": overall,
-        "course_risks": course_risks,
-        "missing_risk": missing_risk,
-        "flagged_courses": flagged_courses,
-        "missing_count": len(missing_items),
-    }
+    return RiskReport(
+        meta=ArtifactMeta.for_source(source_adapter),
+        overall=overall,
+        course_risks=course_risks,
+        missing_risk=missing_risk,
+        flagged_courses=flagged_courses,
+        missing_count=len(missing_items),
+    )
