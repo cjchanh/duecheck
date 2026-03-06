@@ -65,6 +65,7 @@
 - Live-fetch wrapper landed at `wrappers/chrome-extension/`
 - MV3 popup shell with:
   - Canvas API client for active courses + upcoming assignments
+  - extension-side snapshot diffing for upcoming assignments
   - pagination via Canvas `Link` headers
   - background hourly sync alarm plus popup `Sync Now`
   - fail-closed dynamic host permissions
@@ -82,17 +83,22 @@
   - `780ca18` — `feat(extension): background sync with alarms, sync-now, graceful failure`
   - `dd2eb00` — `feat(extension): popup states, security, and dynamic host permissions`
   - `35d6c1d` — `docs(extension): load test checklist, scope truth, and evidence bundle`
+  - `3942183` — `fix(extension): label live course count honestly`
+  - `fdfe2e4` — `fix(extension): allow changing Canvas connection from popup`
+  - `caf9f9b` — `feat(extension): add upcoming snapshot diff engine`
+  - `20963ae` — `feat(extension): surface live change feed in popup`
 - Honest state:
   - local module logic: implemented+tested
-  - browser runtime load in Chrome: designed/unverified
-  - live upcoming-assignment fetch: implemented+tested at module level
-  - DueCheck parity features in extension: designed/unverified
+  - browser runtime happy path in Chrome: implemented+tested
+  - live upcoming-assignment change detection: implemented+tested at module level
+  - stale-data failure behavior in Chrome: designed/unverified
+  - missing-work / risk parity features in extension: designed/unverified
   - IndexedDB run history: designed/unverified
 
 Test baseline → final count:
 
 - Python: `107 -> 107`
-- Node: `3 -> 24`
+- Node: `3 -> 35`
 
 Findings resolved:
 
@@ -100,12 +106,16 @@ Findings resolved:
 - popup save path requests host permission dynamically per Canvas origin
 - sync failure preserves the last good assignment list
 - popup security path never logs or re-renders the saved token
-- scope is explicit: live fetch only, not extension-side parity
+- wrapper now compares the last successful upcoming snapshot to the current one
+- scope is explicit: upcoming-assignment change detection only, not full extension-side parity
 
 Storage key contract:
 
 - `settings`
+- `activeCourseCount`
 - `assignments`
+- `changes`
+- `changeCounts`
 - `syncError`
 - `lastAttemptAt`
 - `lastSuccessAt`
@@ -118,10 +128,9 @@ Storage key contract:
 ## Deferred
 
 - Phase 1.5: missing-work endpoint and `became_missing` classification
-- Phase 2: snapshot diffing (`lastSnapshot` vs `currentSnapshot`)
+- Phase 2: IndexedDB-backed run history beyond the last successful snapshot
 - Phase 3: risk scoring parity with Python engine
-- Phase 4: IndexedDB run history
-- Chrome runtime load verification per `wrappers/chrome-extension/LOAD_TEST.md`
+- Chrome runtime verification of stale-data failure behavior per `wrappers/chrome-extension/LOAD_TEST.md`
 - Extension persistence and injection (Canvas DOM injection, store-ready hardening)
 
 ## Next Planned Work

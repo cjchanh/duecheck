@@ -6,6 +6,7 @@ Current state:
 
 - loadable MV3 popup shell
 - live Canvas fetch for upcoming assignments
+- extension-side snapshot diffing for upcoming assignments
 - background sync with hourly alarm plus popup `Sync Now`
 - local popup states for missing credentials, loading, empty results, ready data, stale data, and error recovery
 - no external dependencies
@@ -23,13 +24,15 @@ What it does now:
 - saves a Canvas base URL and token into `chrome.storage.local`
 - requests host permission for the entered Canvas origin at save time
 - fetches active courses plus upcoming assignments through the Canvas API
+- compares the last successful upcoming-assignment snapshot to the current one
+- surfaces `new`, `got worse`, `moved earlier`, and `cleared` changes in the popup
 - preserves the last good assignment list if a sync fails
-- renders a click-open popup for the live upcoming-assignment surface
+- renders a click-open popup for the live upcoming-assignment surface plus a `What Changed` feed
 
 What it does not do yet:
 
 - classify missing work with Python-engine parity
-- compute snapshot diffs or risk scores in the extension
+- compute missing-work or risk-score parity in the extension
 - persist run history in IndexedDB
 - inject UI into Canvas pages
 - ship Chrome Web Store-ready privacy/permission copy
@@ -44,5 +47,5 @@ Security note:
 Next strike:
 
 - add missing-work parity
-- add snapshot diffing and run history
+- add IndexedDB run history
 - harden the browser runtime path for a real store-ready build

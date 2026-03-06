@@ -117,12 +117,13 @@ The redacted bundle keeps artifact structure, statuses, dates, counts, and chang
 The first browser-wrapper move is now in-repo at [`wrappers/chrome-extension/`](wrappers/chrome-extension/).
 
 - MV3 popup shell with live Canvas fetch for upcoming assignments
+- extension-side snapshot diffing for upcoming assignments with a `What Changed` feed
 - dynamic per-origin host permission request for your Canvas instance
 - local popup states for `no-credentials`, `loading`, `empty`, `ready`, `stale-with-error`, and `error-no-data`
 - token stored locally in extension storage, not encrypted by DueCheck
 - no external JavaScript dependencies
 
-Load it unpacked in Chrome if you want a click-open preview of the wrapper direction. This phase fetches live upcoming assignments only. Snapshot diffing, missing-work parity, risk scoring, IndexedDB history, and DOM injection are still deferred.
+Load it unpacked in Chrome if you want a click-open preview of the wrapper direction. This phase fetches live upcoming assignments and surfaces upcoming-assignment changes only. Missing-work parity, risk scoring, IndexedDB history, and DOM injection are still deferred.
 
 ## CLI Reference
 
@@ -167,7 +168,7 @@ The CLI UX layer adds:
 - `duecheck schedule ...` for macOS-first passive daily sync and report refresh
 - `duecheck redact` for safe, reproducible bug-report bundles
 - runtime precedence of `CLI > env > config > hard default`
-- `wrappers/chrome-extension/` for the experimental MV3 wrapper that fetches live upcoming assignments from Canvas
+- `wrappers/chrome-extension/` for the experimental MV3 wrapper that fetches live upcoming assignments from Canvas and surfaces upcoming-assignment changes
 
 Backward compatibility is preserved for older artifacts through migration shims:
 
