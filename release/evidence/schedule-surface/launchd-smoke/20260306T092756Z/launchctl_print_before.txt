@@ -1,0 +1,67 @@
+gui/501/io.duecheck.sync = {
+	active count = 0
+	path = /Users/cj/Workspace/active/campus-signal/duecheck/release/evidence/schedule-surface/launchd-smoke/20260306T092756Z/home/Library/LaunchAgents/io.duecheck.sync.plist
+	type = LaunchAgent
+	state = not running
+
+	program = /Users/cj/Workspace/active/campus-signal/duecheck/release/evidence/schedule-surface/launchd-smoke/20260306T092756Z/config/duecheck/run-scheduled-sync.sh
+	arguments = {
+		/Users/cj/Workspace/active/campus-signal/duecheck/release/evidence/schedule-surface/launchd-smoke/20260306T092756Z/config/duecheck/run-scheduled-sync.sh
+	}
+
+	stdout path = /Users/cj/Workspace/active/campus-signal/duecheck/release/evidence/schedule-surface/launchd-smoke/20260306T092756Z/home/Library/Logs/DueCheck/schedule.log
+	stderr path = /Users/cj/Workspace/active/campus-signal/duecheck/release/evidence/schedule-surface/launchd-smoke/20260306T092756Z/home/Library/Logs/DueCheck/schedule.err.log
+	inherited environment = {
+		SSH_AUTH_SOCK => /private/tmp/com.apple.launchd.kglFPyAgwk/Listeners
+	}
+
+	default environment = {
+		PATH => /usr/bin:/bin:/usr/sbin:/sbin
+	}
+
+	environment = {
+		OSLogRateLimit => 64
+		XPC_SERVICE_NAME => io.duecheck.sync
+	}
+
+	domain = gui/501 [100022]
+	asid = 100022
+	minimum runtime = 10
+	exit timeout = 5
+	runs = 0
+	last exit code = (never exited)
+
+	event triggers = {
+		io.duecheck.sync.268435472 => {
+			keepalive = 0
+			service = io.duecheck.sync
+			stream = com.apple.launchd.calendarinterval
+			monitor = com.apple.UserEventAgent-Aqua
+			descriptor = {
+				"Minute" => 0
+				"Hour" => 7
+			}
+		}
+	}
+
+	event channels = {
+		"com.apple.launchd.calendarinterval" = {
+			port = 0x0
+			active = 0
+			managed = 1
+			reset = 0
+			hide = 0
+			watching = 1
+		}
+	}
+
+	spawn type = background (5)
+	jetsam priority = 40
+	jetsam memory limit (active) = (unlimited)
+	jetsam memory limit (inactive) = (unlimited)
+	jetsamproperties category = daemon
+	jetsam thread limit = 32
+	cpumon = default
+
+	properties = inferred program
+}

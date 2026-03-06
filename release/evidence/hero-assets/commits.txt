@@ -1,0 +1,10 @@
+f6b01cf docs: place hero assets above the fold in README
+089e831 docs(assets): add real report screenshot and demo gif
+5290e5a docs: record hero asset tooling gate and defer capture
+12e2788 docs(assets): wire hero asset slots and capture template
+db73490 docs: update STATE_REPORT and CLI UX evidence bundle
+dbe1509 docs: document init, doctor, redact, and config precedence
+464725a feat(cli): add config resolution, init, doctor, and redact
+448c547 docs: update STATE_REPORT for release-surface readiness
+0f77e0f ci(release): add pinned release workflow and smoke gate
+7e62bc9 docs: rewrite README for student-first release surface

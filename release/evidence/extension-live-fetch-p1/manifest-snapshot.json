@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "DueCheck",
+  "version": "0.0.1",
+  "description": "A Chrome popup shell for live Canvas assignment fetch and the DueCheck Today board.",
+  "permissions": [
+    "storage",
+    "alarms"
+  ],
+  "optional_host_permissions": [
+    "https://*/*"
+  ],
+  "background": {
+    "service_worker": "background.mjs",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "DueCheck",
+    "default_popup": "popup.html"
+  }
+}

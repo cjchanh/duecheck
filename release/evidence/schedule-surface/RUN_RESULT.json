@@ -1,0 +1,12 @@
+{
+  "status": "ready",
+  "tests_passed": 107,
+  "tests_failed": 0,
+  "lint": "passed",
+  "feature_commit": "3efb959",
+  "docs_pending_commit": true,
+  "artifacts": [
+    "release/evidence/schedule-surface/test_results.txt",
+    "release/evidence/schedule-surface/commits.txt"
+  ]
+}

@@ -7,7 +7,7 @@
 - CLI UX surface for `init`, `doctor`, and `redact` is implemented and validated.
 - Scheduling surface for passive daily use is implemented and verified against real `launchd`.
 - Hero assets completed with real screenshot and GIF captures.
-- Extension-wrapper phase 0 shell is landed in-repo.
+- Extension live-fetch phase 1 is landed in-repo.
 - Public release completed:
   - GitHub `main` pushed
   - public README media render verified
@@ -59,17 +59,54 @@
 - LaunchAgent plus local runner script that reuses existing pull and report flows
 - Real `launchd` smoke test passed
 
-## Extension Wrapper Phase 0
+## Extension Live Fetch Phase 1
 
-- Extension shell landed at `wrappers/chrome-extension/`
-- MV3 popup shell with background seeding of real demo artifact bundle
-- Same Today board, change feed, and course-risk language as the local report
+- Live-fetch wrapper landed at `wrappers/chrome-extension/`
+- MV3 popup shell with:
+  - Canvas API client for active courses + upcoming assignments
+  - pagination via Canvas `Link` headers
+  - background hourly sync alarm plus popup `Sync Now`
+  - fail-closed dynamic host permissions
+  - stale-data preservation on sync failure
+  - popup states:
+    - `no-credentials`
+    - `loading`
+    - `empty`
+    - `ready`
+    - `stale-with-error`
+    - `error-no-data`
 - No external JavaScript dependencies
+- Commits landed:
+  - `cf5db67` — `feat(extension): Canvas API client with pagination and validation`
+  - `780ca18` — `feat(extension): background sync with alarms, sync-now, graceful failure`
+  - `dd2eb00` — `feat(extension): popup states, security, and dynamic host permissions`
 - Honest state:
-  - wrapper shell: implemented+tested for local module logic
+  - local module logic: implemented+tested
   - browser runtime load in Chrome: designed/unverified
-  - real Canvas sync pipeline: designed/unverified
+  - live upcoming-assignment fetch: implemented+tested at module level
+  - DueCheck parity features in extension: designed/unverified
   - IndexedDB run history: designed/unverified
+
+Test baseline → final count:
+
+- Python: `107 -> 107`
+- Node: `3 -> 24`
+
+Findings resolved:
+
+- Canvas pagination is now required for both course and assignment endpoints
+- popup save path requests host permission dynamically per Canvas origin
+- sync failure preserves the last good assignment list
+- popup security path never logs or re-renders the saved token
+- scope is explicit: live fetch only, not extension-side parity
+
+Storage key contract:
+
+- `settings`
+- `assignments`
+- `syncError`
+- `lastAttemptAt`
+- `lastSuccessAt`
 
 ## Hero Assets
 
@@ -78,11 +115,23 @@
 
 ## Deferred
 
-- Extension Canvas sync pipeline
-- Extension persistence and injection (IndexedDB, Canvas DOM injection, store-ready hardening)
+- Phase 1.5: missing-work endpoint and `became_missing` classification
+- Phase 2: snapshot diffing (`lastSnapshot` vs `currentSnapshot`)
+- Phase 3: risk scoring parity with Python engine
+- Phase 4: IndexedDB run history
+- Chrome runtime load verification per `wrappers/chrome-extension/LOAD_TEST.md`
+- Extension persistence and injection (Canvas DOM injection, store-ready hardening)
 
 ## Next Planned Work
 
-- Extension wrapper live-data implementation
+- Extension runtime verification and parity hardening
 - Real-user evidence loop via `doctor` and `redact`
 - Linux scheduling parity
+
+## Active Invariants Held
+
+- Tuesday Bar
+- Fail-Closed
+- Constraints Over Plasticity
+- Signal Over Noise
+- State Before Loop

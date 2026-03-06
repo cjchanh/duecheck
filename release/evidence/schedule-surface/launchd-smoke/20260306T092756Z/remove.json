@@ -1,0 +1,8 @@
+{
+  "status": "removed",
+  "label": "io.duecheck.sync",
+  "removed": [
+    "/Users/cj/Workspace/active/campus-signal/duecheck/release/evidence/schedule-surface/launchd-smoke/20260306T092756Z/home/Library/LaunchAgents/io.duecheck.sync.plist",
+    "/Users/cj/Workspace/active/campus-signal/duecheck/release/evidence/schedule-surface/launchd-smoke/20260306T092756Z/config/duecheck/run-scheduled-sync.sh"
+  ]
+}
