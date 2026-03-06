@@ -1,38 +1,69 @@
-# DueCheck Engine-Spec Hardening — State Report
+# DueCheck State Report
 
-## Commits Landed
+## Current Status
 
-- `c6d1ce6` — `feat(engine): immutable run history, stable LMS identity, dev extras fix`
-- `5239bf7` — `feat(cli): add duecheck demo and duecheck report --html`
-- `f25809a` — `docs(community): add contributor, security, conduct, issue/PR templates, GitHub hardening`
-- `60a764a` — `feat(types): typed artifact models, safe writes, and severity_label contract`
-- `465303f` — `refactor(renderers): split markdown and HTML renderers out of engine modules`
-- `235504f` — `feat(delta): add became_missing and deadline move annotations`
-- `2d458f9` — `test(golden): add replay fixtures and schema validation suite`
-- `7bbdc67` — `docs: update README for typed artifacts, verify, and fail-on`
+- Engine-spec hardening remains landed and green.
+- Release-surface blockers are fixed locally and validated against a built wheel.
+- Release readiness: `READY TO PUSH+TAG`
 
-## Test Baseline → Final
+## Release-Surface Commits Landed
 
-- `61` → `80`
+- `31f4069` — `refactor(packaging): relocate schemas into package and include in wheel`
+- `ca9d435` — `feat(report): add Today section and --open support`
+- `7e62bc9` — `docs: rewrite README for student-first release surface`
+- `0f77e0f` — `ci(release): add pinned release workflow and smoke gate`
 
-## Findings Resolved
+## What This Batch Fixed
 
-- `--repair` now rebuilds from immutable run snapshots instead of diffing `ledger.json` against itself.
-- Assignment identity is adapter-backed through `source_key`, with legacy matching preserved for older ledgers.
-- Artifacts are stamped with `schema_version`, `engine_version`, and `source_adapter`.
-- Canonical artifact writes are safe-default: payloads validate in memory first, then write through temp files plus atomic replace.
-- Output contract renamed from `confidence` to `severity_label`; legacy `confidence` still loads through compatibility shims.
-- `duecheck verify` validates `ledger.json`, `delta.json`, and `risk.json` with stdlib-only structural checks.
-- Markdown and HTML rendering moved out of engine computation into `duecheck/renderers/`.
-- Delta semantics now include `became_missing` plus additive `deadline_moved_earlier` / `deadline_moved_later`.
-- Golden fixtures now replay first-run, changed-run, and repair scenarios with schema validation coverage.
+- Relocated schemas from repo-root `schemas/` into `duecheck/schemas/`.
+- Updated packaging so built wheels include both `duecheck/demo_data/*.json` and `duecheck/schemas/*.json`.
+- Added package-resource coverage for demo data and schemas.
+- Polished the HTML report with a student-facing `Today` board:
+  - `Overdue`
+  - `Due In 48 Hours`
+  - `Due This Week`
+- Added opt-in `--open` support to `duecheck demo` and `duecheck report` using stdlib `webbrowser`.
+- Rewrote `README.md` to lead with student value, dual quickstarts, demo flow, artifact list, CLI reference, and packaged schema paths.
+- Added `.github/workflows/release.yml` with pinned SHAs for build, wheel smoke, and trusted PyPI publish readiness.
+
+## Verification
+
+- Tests: `80` → `85`
+- `python3 -m pytest -q` → `85 passed`
+- `./.venv/bin/ruff check .` → `All checks passed!`
+- `python3 -m build` → passed
+- `twine check dist/*` → passed
+- Fresh-venv wheel smoke:
+  - `duecheck --help` → passed
+  - `duecheck demo --out-dir TMP --json` → passed
+  - `duecheck verify --out-dir TMP --json` → passed
+  - `duecheck report --html --out-dir TMP` → passed
+- Installed package resources verified through `importlib.resources`:
+  - `duecheck/demo_data/sample_bundle.json` present
+  - `duecheck/schemas/ledger.schema.json` present
+- Import compatibility check passed:
+  - `render_delta_markdown`
+  - `render_report_html`
+  - `load_report_context`
+  - `build_delta`
+  - `build_ledger`
+  - `compute_overall_risk`
+  - `AssignmentObservation`
+
+## Release Surface Status
+
+- Schemas relocated: `yes`
+- `--open` landed: `yes`
+- Local wheel smoke test passed: `yes`
+- Repo state target: clean after final docs closeout
+- Release readiness: `READY TO PUSH+TAG`
 
 ## Deferred
 
-- `grade_dropped` / `grade_recovered`
-  Deferred. Clean course-level transition tracking needs a dedicated course snapshot contract; inferring it from assignment ledger rows would widen scope and weaken the engine contract.
-- Shipping repo-root `schemas/` through package-data
-  Deferred. The schemas are published and tested in-repo, but packaging the repo-root directory without duplicating schema sources would widen the package layout in this release.
+- Real README screenshot asset
+  Deferred. The README now has the required placeholder comment; the actual image capture can be added as a follow-up docs pass.
+- Push/tag execution
+  Deferred by explicit session boundary. This run stops at local release readiness and does not push or tag.
 
 ## Active Invariants Held
 
