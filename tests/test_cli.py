@@ -142,9 +142,9 @@ def test_repair_uses_latest_prior_snapshot(tmp_path: Path):
 
     result = run_repair(tmp_path)
     assert result["status"] == "repaired"
-    assert result["counts"]["escalated"] == 1
+    assert result["counts"]["became_missing"] == 1
     delta = json.loads((tmp_path / "delta.json").read_text())
-    assert delta["counts"]["escalated"] == 1
+    assert delta["counts"]["became_missing"] == 1
 
 
 def test_run_demo_writes_artifacts_and_report(tmp_path: Path):
@@ -155,6 +155,16 @@ def test_run_demo_writes_artifacts_and_report(tmp_path: Path):
     assert (tmp_path / "risk.json").exists()
     assert (tmp_path / "changes.md").exists()
     assert (tmp_path / "report.html").exists()
+
+
+def test_run_demo_includes_deadline_and_became_missing_examples(tmp_path: Path):
+    run_demo(tmp_path)
+    delta = json.loads((tmp_path / "delta.json").read_text())
+    change_types = {item["change_type"] for item in delta["changes"]}
+    deadline_changes = {item["deadline_change"] for item in delta["changes"]}
+
+    assert "became_missing" in change_types
+    assert "deadline_moved_later" in deadline_changes
 
 
 def test_run_report_writes_html(tmp_path: Path):
@@ -171,3 +181,31 @@ def test_main_report_requires_html(tmp_path: Path):
     run_demo(tmp_path)
     result = main(["report", "--out-dir", str(tmp_path)])
     assert result == 1
+
+
+def test_threat_fail_on_high_exits_2(tmp_path: Path):
+    def fake_run_pull(**kwargs):
+        out_dir = kwargs["out_dir"]
+        (out_dir / "delta.json").write_text(json.dumps({"counts": {"escalated": 0}}))
+        (out_dir / "risk.json").write_text(json.dumps({"overall": "HIGH"}))
+        return {
+            "courses": 1,
+            "due_48h": 0,
+            "due_7d": 0,
+            "missing": 0,
+            "risk_overall": "HIGH",
+        }
+
+    with patch.dict("os.environ", {"CANVAS_TOKEN": "fake-token"}, clear=True):
+        with patch("duecheck.cli.run_pull", side_effect=fake_run_pull):
+            result = main(
+                [
+                    "--canvas-url",
+                    "https://canvas.example.com",
+                    "--out-dir",
+                    str(tmp_path),
+                    "--fail-on",
+                    "HIGH",
+                ]
+            )
+    assert result == 2

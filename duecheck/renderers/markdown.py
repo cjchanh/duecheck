@@ -13,6 +13,7 @@ def render_delta_markdown(delta: DeltaReport | dict, pulled_ts: str) -> str:
     sections = [
         ("New Items", "new"),
         ("Reactivated Items", "reactivated"),
+        ("Became Missing", "became_missing"),
         ("Escalated Items", "escalated"),
         ("De-escalated Items", "de_escalated"),
         ("Cleared Items", "cleared"),
@@ -25,11 +26,14 @@ def render_delta_markdown(delta: DeltaReport | dict, pulled_ts: str) -> str:
         "## Summary",
         f"- new: {counts.get('new', 0)}",
         f"- reactivated: {counts.get('reactivated', 0)}",
+        f"- became_missing: {counts.get('became_missing', 0)}",
         f"- escalated: {counts.get('escalated', 0)}",
         f"- de_escalated: {counts.get('de_escalated', 0)}",
         f"- cleared: {counts.get('cleared', 0)}",
         f"- unchanged_active: {counts.get('unchanged_active', 0)}",
         f"- unchanged_inactive: {counts.get('unchanged_inactive', 0)}",
+        f"- deadline_moved_earlier: {counts.get('deadline_moved_earlier', 0)}",
+        f"- deadline_moved_later: {counts.get('deadline_moved_later', 0)}",
         "",
     ]
 
@@ -43,9 +47,13 @@ def render_delta_markdown(delta: DeltaReport | dict, pulled_ts: str) -> str:
         for item in matched:
             due_at = str(item.get("to_due_at") or item.get("from_due_at") or "")
             due_text = due_at[:10] if due_at else "NO-DUE-DATE"
+            deadline_note = ""
+            if item.get("deadline_change"):
+                deadline_note = f" | {item.get('deadline_change')}"
             lines.append(
                 f"- {due_text} | {item.get('course', '')} | {item.get('name', '')} | "
                 f"{item.get('from_status', 'absent')} -> {item.get('to_status', '')}"
+                f"{deadline_note}"
             )
         lines.append("")
 

@@ -60,12 +60,15 @@ def _render_cards(context: dict) -> str:
     risk = context["risk"]
     active_items = context["active_items"]
     course_count = len(risk.get("course_risks", {}))
+    escalation_total = int(delta.get("counts", {}).get("escalated", 0)) + int(
+        delta.get("counts", {}).get("became_missing", 0)
+    )
 
     cards = [
         ("Courses", str(course_count), "neutral"),
         ("Active Items", str(len(active_items)), "neutral"),
         ("New Changes", str(delta.get("counts", {}).get("new", 0)), "safe"),
-        ("Escalations", str(delta.get("counts", {}).get("escalated", 0)), "warning"),
+        ("Escalations", str(escalation_total), "warning"),
         ("Missing", str(risk.get("missing_count", 0)), _tone_for_risk(str(risk.get("missing_risk", "UNKNOWN")))),
         ("Overall Risk", str(risk.get("overall", "UNKNOWN")), _tone_for_risk(str(risk.get("overall", "UNKNOWN")))),
     ]
@@ -107,6 +110,7 @@ def _render_changes(context: dict) -> str:
     order = [
         ("new", "New"),
         ("reactivated", "Reactivated"),
+        ("became_missing", "Became Missing"),
         ("escalated", "Escalated"),
         ("de_escalated", "De-escalated"),
         ("cleared", "Cleared"),
@@ -126,9 +130,13 @@ def _render_changes(context: dict) -> str:
         )
         for item in items:
             due_text = str(item.get("to_due_at") or item.get("from_due_at") or "")[:10] or "NO-DUE-DATE"
+            deadline_note = ""
+            if item.get("deadline_change"):
+                deadline_note = f"<br><span class=\"empty\">{escape(str(item.get('deadline_change') or ''))}</span>"
             transition = (
                 f"{escape(str(item.get('from_status') or 'absent'))}"
                 f" → {escape(str(item.get('to_status') or ''))}"
+                f"{deadline_note}"
             )
             sections.append(
                 "<tr>"
