@@ -33,7 +33,8 @@ body {
 
 .hero,
 .panel,
-.card {
+.card,
+.cards {
   background: var(--paper);
   border: 1px solid var(--line);
   border-radius: 18px;
@@ -41,7 +42,8 @@ body {
 }
 
 .hero,
-.panel {
+.panel,
+.cards {
   padding: 16px;
 }
 
@@ -78,6 +80,8 @@ h2 {
 
 .hero-actions {
   margin-top: 12px;
+  display: flex;
+  gap: 10px;
 }
 
 button {
@@ -192,4 +196,56 @@ button:hover {
 .item-meta {
   color: var(--muted);
   font-size: 12px;
+}
+
+.banner {
+  font-weight: 500;
+}
+
+.banner[data-tone="warning"] {
+  border-color: rgba(160, 90, 18, 0.28);
+  background: rgba(248, 236, 218, 0.94);
+  color: #7a430e;
+}
+
+.banner[data-tone="neutral"] {
+  color: var(--muted);
+}
+
+.banner[data-tone="safe"] {
+  border-color: rgba(44, 122, 91, 0.28);
+  background: rgba(233, 247, 240, 0.94);
+  color: var(--safe);
+}
+
+.settings-form {
+  display: grid;
+  gap: 12px;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+}
+
+.field span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+input {
+  appearance: none;
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: white;
+  color: var(--ink);
+  padding: 10px 12px;
+  font: inherit;
+}
+
+input:focus,
+button:focus {
+  outline: 2px solid rgba(160, 90, 18, 0.28);
+  outline-offset: 2px;
 }

@@ -7,7 +7,8 @@
 - CLI UX surface for `init`, `doctor`, and `redact` is implemented and validated.
 - Scheduling surface for passive daily use is implemented and verified against real `launchd`.
 - Hero assets completed with real screenshot and GIF captures.
-- Extension-wrapper phase 0 shell is landed in-repo.
+- Extension live-fetch phase 1 is landed in-repo.
+- `release/evidence/` is local-only and ignored from the public branch.
 - Public release completed:
   - GitHub `main` pushed
   - public README media render verified
@@ -59,17 +60,65 @@
 - LaunchAgent plus local runner script that reuses existing pull and report flows
 - Real `launchd` smoke test passed
 
-## Extension Wrapper Phase 0
+## Extension Live Fetch Phase 1
 
-- Extension shell landed at `wrappers/chrome-extension/`
-- MV3 popup shell with background seeding of real demo artifact bundle
-- Same Today board, change feed, and course-risk language as the local report
+- Live-fetch wrapper landed at `wrappers/chrome-extension/`
+- MV3 popup shell with:
+  - Canvas API client for active courses + upcoming assignments
+  - extension-side snapshot diffing for upcoming assignments
+  - pagination via Canvas `Link` headers
+  - background hourly sync alarm plus popup `Sync Now`
+  - fail-closed dynamic host permissions
+  - stale-data preservation on sync failure
+  - popup states:
+    - `no-credentials`
+    - `loading`
+    - `empty`
+    - `ready`
+    - `stale-with-error`
+    - `error-no-data`
 - No external JavaScript dependencies
+- Commits landed:
+  - `cf5db67` — `feat(extension): Canvas API client with pagination and validation`
+  - `780ca18` — `feat(extension): background sync with alarms, sync-now, graceful failure`
+  - `dd2eb00` — `feat(extension): popup states, security, and dynamic host permissions`
+  - `35d6c1d` — `docs(extension): load test checklist, scope truth, and evidence bundle`
+  - `3942183` — `fix(extension): label live course count honestly`
+  - `fdfe2e4` — `fix(extension): allow changing Canvas connection from popup`
+  - `caf9f9b` — `feat(extension): add upcoming snapshot diff engine`
+  - `20963ae` — `feat(extension): surface live change feed in popup`
 - Honest state:
-  - wrapper shell: implemented+tested for local module logic
-  - browser runtime load in Chrome: designed/unverified
-  - real Canvas sync pipeline: designed/unverified
+  - local module logic: implemented+tested
+  - browser runtime happy path in Chrome: implemented+tested
+  - live upcoming-assignment change detection: implemented+tested at module level
+  - stale-data failure behavior in Chrome: designed/unverified
+  - missing-work / risk parity features in extension: designed/unverified
   - IndexedDB run history: designed/unverified
+
+Test baseline → final count:
+
+- Python: `107 -> 107`
+- Node: `3 -> 35`
+
+Findings resolved:
+
+- Canvas pagination is now required for both course and assignment endpoints
+- popup save path requests host permission dynamically per Canvas origin
+- sync failure preserves the last good assignment list
+- popup security path never logs or re-renders the saved token
+- wrapper now compares the last successful upcoming snapshot to the current one
+- scope is explicit: upcoming-assignment change detection only, not full extension-side parity
+
+Storage key contract:
+
+- `settings`
+- `activeCourseCount`
+- `assignments`
+- `changes`
+- `changeCounts`
+- `syncError`
+- `lastAttemptAt`
+- `lastSuccessAt`
 
 ## Hero Assets
 
@@ -78,11 +127,22 @@
 
 ## Deferred
 
-- Extension Canvas sync pipeline
-- Extension persistence and injection (IndexedDB, Canvas DOM injection, store-ready hardening)
+- Phase 1.5: missing-work endpoint and `became_missing` classification
+- Phase 2: IndexedDB-backed run history beyond the last successful snapshot
+- Phase 3: risk scoring parity with Python engine
+- Chrome runtime verification of stale-data failure behavior per `wrappers/chrome-extension/LOAD_TEST.md`
+- Extension persistence and injection (Canvas DOM injection, store-ready hardening)
 
 ## Next Planned Work
 
-- Extension wrapper live-data implementation
+- Extension runtime verification and parity hardening
 - Real-user evidence loop via `doctor` and `redact`
 - Linux scheduling parity
+
+## Active Invariants Held
+
+- Tuesday Bar
+- Fail-Closed
+- Constraints Over Plasticity
+- Signal Over Noise
+- State Before Loop
