@@ -1,0 +1,13 @@
+{
+  "overall": "MEDIUM",
+  "course_risks": {
+    "English Composition": "LOW",
+    "Philosophy": "MEDIUM",
+    "Health Nutrition": "LOW"
+  },
+  "missing_risk": "MEDIUM",
+  "flagged_courses": [
+    "Philosophy"
+  ],
+  "missing_count": 1
+}
