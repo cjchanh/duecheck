@@ -16,7 +16,7 @@ Every time you run it, DueCheck:
 
 1. **Pulls** your current assignments, grades, and missing submissions from Canvas
 2. **Diffs** them against yesterday's state using a persistent ledger
-3. **Classifies** changes: new, escalated, de-escalated, cleared, unchanged
+3. **Classifies** changes: new, became_missing, escalated, de-escalated, cleared, unchanged
 4. **Scores** academic risk based on grades, missing work, and overdue items
 5. **Outputs** a clean summary of what needs your attention
 
@@ -39,11 +39,12 @@ No Canvas account handy? Use the packaged demo bundle:
 
 ```bash
 duecheck demo --out-dir ./demo
+duecheck verify --out-dir ./demo
 duecheck report --html --out-dir ./demo
 ```
 
 Output files:
-- `ledger.json` — full assignment ledger with status, dates, and confidence
+- `ledger.json` — full assignment ledger with status, dates, severity labels, and artifact metadata
 - `delta.json` — structured diff: what changed since last run
 - `changes.md` — human-readable changelog
 - `risk.json` — academic risk assessment
@@ -75,6 +76,9 @@ _Pulled: 2026-03-05T12:00:00Z_
 
 ```json
 {
+  "schema_version": "1.0",
+  "engine_version": "0.2.0",
+  "source_adapter": "canvas",
   "overall": "MEDIUM",
   "course_risks": {
     "English Composition": "LOW",
@@ -98,10 +102,12 @@ Options:
   --course-filter COURSE    Filter to specific courses (e.g. "ENGL 1308")
   --grade-threshold N       Risk threshold (default: 80.0)
   --repair                  Rebuild delta from existing ledger
+  --fail-on TOKEN           Exit 2 on HIGH|MEDIUM|escalated|missing
   --json                    Output summary as JSON
 
 Extra commands:
   duecheck demo --out-dir DIR
+  duecheck verify --out-dir DIR [--json]
   duecheck report --html --out-dir DIR [--output PATH]
 ```
 
@@ -112,20 +118,37 @@ DueCheck maintains a **persistent assignment ledger** — a JSON file that track
 - `status`: `missing`, `due_48h`, `due_7d`, or `not_observed`
 - `first_seen` / `last_seen`: when the assignment entered and last appeared in a sync
 - `source_key`: LMS-backed identity when the adapter can provide one
-- `confidence`: `high` (missing/due_48h), `medium` (due_7d), `low` (not_observed)
+- `severity_label`: `high` (missing/due_48h), `medium` (due_7d), `low` (not_observed)
 - `item_id`: deterministic hash of adapter-backed identity when available, otherwise course + assignment name
+- `schema_version`, `engine_version`, `source_adapter`: artifact metadata stamped onto every output
 
 Each run compares the current state to the previous ledger and classifies every assignment into one of:
 
 | Change Type | Meaning |
 |---|---|
 | `new` | First time seeing this assignment |
-| `escalated` | Status got worse (e.g. `due_7d` -> `missing`) |
+| `became_missing` | Active work crossed into `missing` |
+| `escalated` | Status got worse without crossing into `missing` |
 | `de_escalated` | Status improved |
 | `reactivated` | Was `not_observed`, now active again |
 | `cleared` | Was active, now `not_observed` |
 | `unchanged_active` | Still active, same status |
 | `unchanged_inactive` | Still inactive |
+
+Deadline movement is tracked as an additive annotation, not a replacement for the primary change type:
+
+- `deadline_moved_earlier`
+- `deadline_moved_later`
+
+## Schemas
+
+Machine-readable JSON Schemas live in [`schemas/`](schemas/):
+
+- `schemas/ledger.schema.json`
+- `schemas/delta.schema.json`
+- `schemas/risk.schema.json`
+
+`duecheck verify --out-dir DIR` uses a stdlib-only structural validator against the same artifact contract before automation or report steps consume the files.
 
 ## Architecture
 
@@ -134,8 +157,10 @@ duecheck/
   types.py      Shared types, LMSAdapter protocol, constants
   adapter.py    CanvasAdapter (LMS integration)
   ledger.py     Persistent ledger: load, merge, build, sort
-  delta.py      Delta computation + markdown rendering
+  delta.py      Delta computation
+  renderers/    Markdown and HTML rendering
   risk.py       Rule-based risk scoring
+  validate.py   Stdlib artifact validation
   cli.py        CLI entrypoint
 ```
 
@@ -145,7 +170,16 @@ The `LMSAdapter` protocol is designed for future LMS support (Blackboard, Moodle
 
 `duecheck demo` writes a sanitized sample bundle to disk so the repo can be explored without Canvas credentials.
 
+`duecheck verify` validates `ledger.json`, `delta.json`, and `risk.json` without touching the current artifacts.
+
 `duecheck report --html` renders a self-contained HTML view from local artifacts. No external service required.
+
+`--fail-on` makes DueCheck usable in cron, LaunchAgents, and CI:
+
+- `--fail-on HIGH`
+- `--fail-on MEDIUM`
+- `--fail-on escalated`
+- `--fail-on missing`
 
 ## Development
 
