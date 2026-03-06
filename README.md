@@ -69,12 +69,43 @@ export CANVAS_TOKEN="your-token-here"
 duecheck --canvas-url https://canvas.yourschool.edu --out-dir ./my-classes
 ```
 
+## First-Time Setup
+
+If you want to run DueCheck more than once without retyping your Canvas URL and output directory, initialize local CLI defaults:
+
+```bash
+duecheck init
+duecheck doctor
+duecheck
+```
+
+Config precedence is:
+
+```text
+CLI flags > environment variables > config file > hard default
+```
+
+If you choose to save a Canvas token with `duecheck init`, it is stored as plaintext on disk in your local config file. DueCheck does not claim to encrypt it.
+
+## Safe Bug Reports
+
+If you hit a real issue, generate a redacted bundle before opening an issue:
+
+```bash
+duecheck redact --out-dir ./my-classes --dest ./duecheck-bugreport
+duecheck verify --out-dir ./duecheck-bugreport --json
+duecheck report --html --out-dir ./duecheck-bugreport
+```
+
+The redacted bundle keeps artifact structure, statuses, dates, counts, and change types, but replaces course names, assignment names, source keys, and derived item identities.
+
 ## CLI Reference
 
 ```text
 duecheck --canvas-url URL --out-dir DIR [options]
 
 Core options:
+  --canvas-token TOKEN       Canvas token to use directly for this run
   --token-env VAR           Env var with Canvas token (default: CANVAS_TOKEN)
   --course-filter COURSE    Filter to specific courses
   --grade-threshold N       Risk threshold (default: 80.0)
@@ -83,7 +114,10 @@ Core options:
   --json                    Output summary as JSON
 
 Extra commands:
+  duecheck init [--yes] [--print-path]
   duecheck demo --out-dir DIR [--json] [--open]
+  duecheck doctor [--out-dir DIR] [--check-auth] [--json]
+  duecheck redact --out-dir DIR --dest DIR [--json]
   duecheck verify --out-dir DIR [--json]
   duecheck report --html --out-dir DIR [--output PATH] [--json] [--open]
 ```
@@ -97,6 +131,13 @@ DueCheck is a stdlib-only Python engine for Canvas assignment tracking. It:
 3. Computes a structured delta with change types like `new`, `became_missing`, `escalated`, `cleared`, and additive deadline movement annotations.
 4. Scores academic risk with deterministic rules instead of heuristics or AI.
 5. Validates artifacts before writing them, then writes through temp files plus atomic replace.
+
+The CLI UX layer adds:
+
+- `duecheck init` for local config bootstrap at `~/.config/duecheck/config.json`
+- `duecheck doctor` for local diagnostics before you file an issue
+- `duecheck redact` for safe, reproducible bug-report bundles
+- runtime precedence of `CLI > env > config > hard default`
 
 Backward compatibility is preserved for older artifacts through migration shims:
 
