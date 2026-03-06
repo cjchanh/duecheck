@@ -8,6 +8,7 @@
 - Scheduling surface for passive daily use is implemented and verified against real `launchd`.
 - Hero assets completed with real screenshot and GIF captures.
 - Extension live-fetch phase 1 is landed in-repo.
+- `release/evidence/` is local-only and ignored from the public branch.
 - Public release completed:
   - GitHub `main` pushed
   - public README media render verified

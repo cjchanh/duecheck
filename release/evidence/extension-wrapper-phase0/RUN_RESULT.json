@@ -1,9 +1,0 @@
-{
-  "status": "ready",
-  "surface": "extension-wrapper-phase0",
-  "node_tests": "pass",
-  "python_tests": "pass",
-  "ruff": "pass",
-  "browser_runtime": "designed/unverified",
-  "live_canvas_sync": "designed/unverified"
-}

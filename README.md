@@ -118,7 +118,7 @@ The first browser-wrapper move is now in-repo at [`wrappers/chrome-extension/`](
 
 - MV3 popup shell with live Canvas fetch for upcoming assignments
 - dynamic per-origin host permission request for your Canvas instance
-- local popup states for `no-credentials`, `loading`, `ready`, `stale-with-error`, and `error-no-data`
+- local popup states for `no-credentials`, `loading`, `empty`, `ready`, `stale-with-error`, and `error-no-data`
 - token stored locally in extension storage, not encrypted by DueCheck
 - no external JavaScript dependencies
 

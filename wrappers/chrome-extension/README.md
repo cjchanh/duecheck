@@ -7,7 +7,7 @@ Current state:
 - loadable MV3 popup shell
 - live Canvas fetch for upcoming assignments
 - background sync with hourly alarm plus popup `Sync Now`
-- local popup states for missing credentials, loading, stale data, and error recovery
+- local popup states for missing credentials, loading, empty results, ready data, stale data, and error recovery
 - no external dependencies
 
 How to load it:
