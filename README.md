@@ -1,195 +1,141 @@
 # DueCheck
 
-**Know what changed. Handle what matters.**
+DueCheck tells you what changed in Canvas since your last check.
 
-DueCheck is an open-source assignment tracking engine for college students. It syncs with Canvas, keeps a persistent ledger of every assignment, and tells you exactly what changed since yesterday.
+- See new deadlines, missing work, and escalations without re-reading every course page.
+- Keep a local assignment ledger and compare today against the last good snapshot.
+- Generate a static report you can open in a browser with no hosted service and no runtime dependencies.
 
-## The Problem
-
-Canvas shows you a dashboard of everything but tells you nothing about what *changed*. You have four classes, thirty assignments, and a page that looks the same every time you open it. A new deadline appeared, a grade dropped, a missing submission is silently getting worse — but you would not know unless you checked every course, every day.
-
-Most students do not check every course every day.
-
-## What DueCheck Does
-
-Every time you run it, DueCheck:
-
-1. **Pulls** your current assignments, grades, and missing submissions from Canvas
-2. **Diffs** them against yesterday's state using a persistent ledger
-3. **Classifies** changes: new, became_missing, escalated, de-escalated, cleared, unchanged
-4. **Scores** academic risk based on grades, missing work, and overdue items
-5. **Outputs** a clean summary of what needs your attention
-
-The output is deterministic. No AI, no chatbot, no "study coach." Just structured state tracking with diffs.
+<!-- TODO: add screenshot of report.html from duecheck demo -->
 
 ## Quick Start
 
+### After v0.2.0 is published
+
 ```bash
 pip install duecheck
+duecheck demo --out-dir ./demo --open
 ```
 
-Get a Canvas API token: Canvas > Settings > Approved Integrations > New Access Token.
+### From source / development
 
 ```bash
-export CANVAS_TOKEN="your-token-here"
-duecheck --canvas-url https://canvas.yourschool.edu --out-dir ./my-classes
+git clone https://github.com/cjchanh/duecheck.git
+cd duecheck
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
+duecheck demo --out-dir ./demo --open
 ```
 
-No Canvas account handy? Use the packaged demo bundle:
+## Demo Flow
+
+No Canvas account needed:
 
 ```bash
-duecheck demo --out-dir ./demo
-duecheck verify --out-dir ./demo
-duecheck report --html --out-dir ./demo
+duecheck demo --out-dir ./demo --open
+duecheck verify --out-dir ./demo --json
+duecheck report --html --out-dir ./demo --open
 ```
 
-Output files:
-- `ledger.json` — full assignment ledger with status, dates, severity labels, and artifact metadata
-- `delta.json` — structured diff: what changed since last run
-- `changes.md` — human-readable changelog
-- `risk.json` — academic risk assessment
-- `report.html` — self-contained local dashboard
-- `runs/` — immutable per-run snapshots used for repair and history
+## What It Produces
+
+- `report.html` — self-contained local report with a Today board, change feed, and ledger table
+- `ledger.json` — persistent assignment ledger with typed artifact metadata
+- `delta.json` — structured diff between the current run and the previous ledger state
+- `changes.md` — markdown changelog generated from the delta
+- `risk.json` — rule-based academic risk summary
+- `runs/` — immutable per-run snapshots used for history and repair
 
 ## Example Output
-
-### Changes (changes.md)
 
 ```markdown
 # Assignment Changes
 _Pulled: 2026-03-05T12:00:00Z_
 
 ## Summary
-- new: 2
+- new: 1
+- became_missing: 1
 - escalated: 1
-- cleared: 1
-- unchanged_active: 5
-
-## New Items
-- 2026-03-10 | English Composition | Essay 3 Draft | absent -> due_7d
-
-## Escalated Items
-- 2026-03-06 | Philosophy | Reflection Paper 4 | due_7d -> due_48h
+- deadline_moved_later: 1
 ```
 
-### Risk (risk.json)
+## Canvas Quickstart
 
-```json
-{
-  "schema_version": "1.0",
-  "engine_version": "0.2.0",
-  "source_adapter": "canvas",
-  "overall": "MEDIUM",
-  "course_risks": {
-    "English Composition": "LOW",
-    "Philosophy": "MEDIUM"
-  },
-  "missing_risk": "LOW",
-  "flagged_courses": ["Philosophy"],
-  "missing_count": 0
-}
+Get a Canvas API token from: Canvas > Settings > Approved Integrations > New Access Token.
+
+```bash
+export CANVAS_TOKEN="your-token-here"
+duecheck --canvas-url https://canvas.yourschool.edu --out-dir ./my-classes
 ```
 
 ## CLI Reference
 
-```
-duecheck --help
+```text
+duecheck --canvas-url URL --out-dir DIR [options]
 
-Options:
-  --canvas-url URL          Canvas base URL (or set CANVAS_URL env var)
+Core options:
   --token-env VAR           Env var with Canvas token (default: CANVAS_TOKEN)
-  --out-dir DIR             Output directory (default: current dir)
-  --course-filter COURSE    Filter to specific courses (e.g. "CS 101")
+  --course-filter COURSE    Filter to specific courses
   --grade-threshold N       Risk threshold (default: 80.0)
   --repair                  Rebuild delta from existing ledger
   --fail-on TOKEN           Exit 2 on HIGH|MEDIUM|escalated|missing
   --json                    Output summary as JSON
 
 Extra commands:
-  duecheck demo --out-dir DIR
+  duecheck demo --out-dir DIR [--json] [--open]
   duecheck verify --out-dir DIR [--json]
-  duecheck report --html --out-dir DIR [--output PATH]
+  duecheck report --html --out-dir DIR [--output PATH] [--json] [--open]
 ```
 
-## How It Works
+## Technical Notes
 
-DueCheck maintains a **persistent assignment ledger** — a JSON file that tracks every assignment it has ever seen, with:
+DueCheck is a stdlib-only Python engine for Canvas assignment tracking. It:
 
-- `status`: `missing`, `due_48h`, `due_7d`, or `not_observed`
-- `first_seen` / `last_seen`: when the assignment entered and last appeared in a sync
-- `source_key`: LMS-backed identity when the adapter can provide one
-- `severity_label`: `high` (missing/due_48h), `medium` (due_7d), `low` (not_observed)
-- `item_id`: deterministic hash of adapter-backed identity when available, otherwise course + assignment name
-- `schema_version`, `engine_version`, `source_adapter`: artifact metadata stamped onto every output
+1. Pulls courses, assignments, and missing submissions from Canvas.
+2. Builds a typed ledger of assignment state with `schema_version`, `engine_version`, and `source_adapter`.
+3. Computes a structured delta with change types like `new`, `became_missing`, `escalated`, `cleared`, and additive deadline movement annotations.
+4. Scores academic risk with deterministic rules instead of heuristics or AI.
+5. Validates artifacts before writing them, then writes through temp files plus atomic replace.
 
-Each run compares the current state to the previous ledger and classifies every assignment into one of:
+Backward compatibility is preserved for older artifacts through migration shims:
 
-| Change Type | Meaning |
-|---|---|
-| `new` | First time seeing this assignment |
-| `became_missing` | Active work crossed into `missing` |
-| `escalated` | Status got worse without crossing into `missing` |
-| `de_escalated` | Status improved |
-| `reactivated` | Was `not_observed`, now active again |
-| `cleared` | Was active, now `not_observed` |
-| `unchanged_active` | Still active, same status |
-| `unchanged_inactive` | Still inactive |
-
-Deadline movement is tracked as an additive annotation, not a replacement for the primary change type:
-
-- `deadline_moved_earlier`
-- `deadline_moved_later`
+- legacy `confidence` still loads
+- produced artifacts write only `severity_label`
+- import paths from `duecheck.__init__` stay stable
 
 ## Schemas
 
-Machine-readable JSON Schemas live in [`schemas/`](schemas/):
+Machine-readable schemas ship inside the package at [`duecheck/schemas/`](duecheck/schemas/):
 
-- `schemas/ledger.schema.json`
-- `schemas/delta.schema.json`
-- `schemas/risk.schema.json`
+- [`duecheck/schemas/ledger.schema.json`](duecheck/schemas/ledger.schema.json)
+- [`duecheck/schemas/delta.schema.json`](duecheck/schemas/delta.schema.json)
+- [`duecheck/schemas/risk.schema.json`](duecheck/schemas/risk.schema.json)
 
-`duecheck verify --out-dir DIR` uses a stdlib-only structural validator against the same artifact contract before automation or report steps consume the files.
+`duecheck verify` uses a matching stdlib-only structural validator against the same artifact contract.
 
 ## Architecture
 
-```
+```text
 duecheck/
-  types.py      Shared types, LMSAdapter protocol, constants
-  adapter.py    CanvasAdapter (LMS integration)
-  ledger.py     Persistent ledger: load, merge, build, sort
-  delta.py      Delta computation
-  renderers/    Markdown and HTML rendering
-  risk.py       Rule-based risk scoring
-  validate.py   Stdlib artifact validation
-  cli.py        CLI entrypoint
+  adapter.py        Canvas adapter
+  cli.py            CLI entrypoint
+  delta.py          Delta computation
+  ledger.py         Ledger build and migration
+  renderers/        Markdown and HTML rendering
+  risk.py           Rule-based risk scoring
+  schemas/          Packaged JSON Schemas
+  types.py          Shared types and artifact models
+  validate.py       Stdlib artifact validation
 ```
-
-The `LMSAdapter` protocol is designed for future LMS support (Blackboard, Moodle, etc.) without rewriting the core engine.
-
-`--repair` rebuilds `delta.json` and `changes.md` by comparing the current top-level ledger against the latest prior snapshot in `runs/`.
-
-`duecheck demo` writes a sanitized sample bundle to disk so the repo can be explored without Canvas credentials.
-
-`duecheck verify` validates `ledger.json`, `delta.json`, and `risk.json` without touching the current artifacts.
-
-`duecheck report --html` renders a self-contained HTML view from local artifacts. No external service required.
-
-`--fail-on` makes DueCheck usable in cron, LaunchAgents, and CI:
-
-- `--fail-on HIGH`
-- `--fail-on MEDIUM`
-- `--fail-on escalated`
-- `--fail-on missing`
 
 ## Development
 
 ```bash
-git clone https://github.com/your-username/duecheck
-cd duecheck
-python3 -m venv .venv && source .venv/bin/activate
-pip install -e ".[dev]"
-pytest -v
+pytest -q
 ruff check .
+python3 -m build
+twine check dist/*
 ```
 
 ## Community
@@ -201,11 +147,3 @@ ruff check .
 ## License
 
 MIT. See [LICENSE](LICENSE).
-
-## Origin
-
-DueCheck started as a personal tool built by a student going back to college. Canvas had all the data, but none of the signal. The warning signs were there — they were just invisible in the workflow.
-
-This tool keeps a daily ledger and diffs it. It caught a missing submission that would have cost a letter grade. Then it caught two more.
-
-Now it is open source, so you can run it too.
