@@ -1,0 +1,7 @@
+{
+  "mode": "repair",
+  "previous_fixture": "golden_001",
+  "current_fixture": "golden_002",
+  "previous_pulled_at": "2026-03-05T12:00:00Z",
+  "current_pulled_at": "2026-03-06T12:00:00Z"
+}

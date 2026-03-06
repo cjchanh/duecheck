@@ -1,0 +1,63 @@
+{
+  "previous_fixture": "golden_001",
+  "pulled_at": "2026-03-06T12:00:00Z",
+  "courses": [
+    {
+      "id": 101,
+      "name": "English",
+      "slug": "engl",
+      "score": 83.0,
+      "grade": "B"
+    },
+    {
+      "id": 102,
+      "name": "Philosophy",
+      "slug": "phil",
+      "score": 72.0,
+      "grade": "C"
+    },
+    {
+      "id": 103,
+      "name": "Health",
+      "slug": "hlth",
+      "score": 88.0,
+      "grade": "B"
+    }
+  ],
+  "due_48_items": [
+    {
+      "source_key": "canvas:101:1",
+      "due_at": "2026-03-06T12:00:00Z",
+      "course": "English",
+      "name": "Essay 1"
+    },
+    {
+      "source_key": "canvas:102:2",
+      "due_at": "2026-03-07T09:00:00Z",
+      "course": "Philosophy",
+      "name": "Quiz 2"
+    }
+  ],
+  "due_7_items": [
+    {
+      "source_key": "canvas:103:3",
+      "due_at": "2026-03-12T15:00:00Z",
+      "course": "Health",
+      "name": "Lab 3"
+    },
+    {
+      "source_key": "canvas:101:5",
+      "due_at": "2026-03-11T18:00:00Z",
+      "course": "English",
+      "name": "Discussion 4"
+    }
+  ],
+  "missing_raw": [
+    {
+      "assignment_id": 1,
+      "course_id": 101,
+      "name": "Essay 1",
+      "due_at": "2026-03-06T12:00:00Z"
+    }
+  ]
+}

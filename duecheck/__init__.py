@@ -1,6 +1,6 @@
 """DueCheck — Canvas early warning engine."""
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 from .adapter import CanvasAdapter
 from .delta import build_delta

@@ -1,0 +1,80 @@
+{
+  "schema_version": "1.0",
+  "engine_version": "0.2.0",
+  "source_adapter": "canvas",
+  "pulled_at": "2026-03-05T12:00:00Z",
+  "counts": {
+    "new": 4,
+    "reactivated": 0,
+    "became_missing": 0,
+    "escalated": 0,
+    "de_escalated": 0,
+    "cleared": 0,
+    "unchanged_active": 0,
+    "unchanged_inactive": 0,
+    "deadline_moved_earlier": 0,
+    "deadline_moved_later": 0
+  },
+  "changes": [
+    {
+      "item_id": "asg_f0a928fdbe0cf817",
+      "name": "Reflection 1",
+      "course": "Philosophy",
+      "change_type": "new",
+      "from_status": "absent",
+      "to_status": "missing",
+      "from_due_at": "",
+      "to_due_at": "2026-03-04T23:59:00Z",
+      "due_at_changed": true,
+      "deadline_change": "",
+      "first_seen": "2026-03-05T12:00:00Z",
+      "last_seen": "2026-03-05T12:00:00Z",
+      "severity_label": "high"
+    },
+    {
+      "item_id": "asg_f35b5f98822be7ac",
+      "name": "Essay 1",
+      "course": "English",
+      "change_type": "new",
+      "from_status": "absent",
+      "to_status": "due_48h",
+      "from_due_at": "",
+      "to_due_at": "2026-03-06T12:00:00Z",
+      "due_at_changed": true,
+      "deadline_change": "",
+      "first_seen": "2026-03-05T12:00:00Z",
+      "last_seen": "2026-03-05T12:00:00Z",
+      "severity_label": "high"
+    },
+    {
+      "item_id": "asg_810a85aea48a7196",
+      "name": "Quiz 2",
+      "course": "Philosophy",
+      "change_type": "new",
+      "from_status": "absent",
+      "to_status": "due_48h",
+      "from_due_at": "",
+      "to_due_at": "2026-03-07T09:00:00Z",
+      "due_at_changed": true,
+      "deadline_change": "",
+      "first_seen": "2026-03-05T12:00:00Z",
+      "last_seen": "2026-03-05T12:00:00Z",
+      "severity_label": "high"
+    },
+    {
+      "item_id": "asg_7361626632093e3d",
+      "name": "Lab 3",
+      "course": "Health",
+      "change_type": "new",
+      "from_status": "absent",
+      "to_status": "due_7d",
+      "from_due_at": "",
+      "to_due_at": "2026-03-10T15:00:00Z",
+      "due_at_changed": true,
+      "deadline_change": "",
+      "first_seen": "2026-03-05T12:00:00Z",
+      "last_seen": "2026-03-05T12:00:00Z",
+      "severity_label": "medium"
+    }
+  ]
+}
