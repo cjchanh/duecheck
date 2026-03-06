@@ -9,25 +9,38 @@
   <body>
     <main class="shell">
       <header class="hero">
-        <p class="eyebrow">DueCheck Extension Shell</p>
+        <p class="eyebrow">DueCheck Live Canvas Preview</p>
         <h1>What changed since your last check.</h1>
-        <p class="copy" id="mode-line">Loading demo bundle…</p>
+        <p class="copy" id="mode-line">Loading live Canvas state…</p>
         <div class="hero-actions">
-          <button id="reload-demo" type="button">Reload Demo</button>
+          <button id="sync-now" type="button">Sync Now</button>
         </div>
       </header>
-      <section class="cards" id="cards"></section>
-      <section class="panel">
+      <section class="panel banner" id="status-banner" hidden></section>
+      <section class="panel" id="settings-panel">
+        <h2>Connect Canvas</h2>
+        <form id="settings-form" class="settings-form">
+          <label class="field">
+            <span>Canvas Base URL</span>
+            <input id="api-base-url" name="apiBaseUrl" type="url" placeholder="https://canvas.yourschool.edu">
+          </label>
+          <label class="field">
+            <span>Access Token</span>
+            <input id="access-token" name="accessToken" type="password" autocomplete="off" placeholder="Paste token">
+          </label>
+          <button type="submit">Save And Sync</button>
+        </form>
+      </section>
+      <section class="cards" id="cards-panel">
+        <div class="cards" id="cards"></div>
+      </section>
+      <section class="panel" id="today-panel">
         <h2>Today</h2>
         <div id="today"></div>
       </section>
-      <section class="panel">
-        <h2>Change Feed</h2>
-        <div id="changes"></div>
-      </section>
-      <section class="panel">
-        <h2>Course Risk</h2>
-        <div id="course-risk"></div>
+      <section class="panel" id="sync-panel">
+        <h2>Sync Status</h2>
+        <div id="sync-meta" class="stack"></div>
       </section>
     </main>
     <script type="module" src="popup.mjs"></script>

@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
-import { buildPopupViewModel } from "../lib/view-model.mjs";
+import { buildPopupViewModel } from "../src/view-model.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const sampleBundle = JSON.parse(readFileSync(join(here, "..", "fixtures", "sample-bundle.json"), "utf8"));
