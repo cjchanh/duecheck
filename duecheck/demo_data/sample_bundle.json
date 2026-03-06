@@ -1,0 +1,162 @@
+{
+  "pulled_at": "2026-03-05T12:00:00Z",
+  "ledger": [
+    {
+      "item_id": "asg_canvas_demo_5001",
+      "source_key": "canvas:102:5001",
+      "name": "Quiz 5",
+      "course": "Philosophy",
+      "status": "missing",
+      "due_at": "2026-02-28T23:59:00Z",
+      "date": "2026-02-28",
+      "confidence": "high",
+      "first_seen": "2026-03-05T12:00:00Z",
+      "last_seen": "2026-03-05T12:00:00Z"
+    },
+    {
+      "item_id": "asg_canvas_demo_5002",
+      "source_key": "canvas:102:5002",
+      "name": "Reflection Paper 4",
+      "course": "Philosophy",
+      "status": "due_48h",
+      "due_at": "2026-03-06T08:00:00Z",
+      "date": "2026-03-06",
+      "confidence": "high",
+      "first_seen": "2026-03-03T12:00:00Z",
+      "last_seen": "2026-03-05T12:00:00Z"
+    },
+    {
+      "item_id": "asg_canvas_demo_5003",
+      "source_key": "canvas:101:5003",
+      "name": "Discussion Post Week 8",
+      "course": "English Composition",
+      "status": "due_48h",
+      "due_at": "2026-03-07T00:00:00Z",
+      "date": "2026-03-07",
+      "confidence": "high",
+      "first_seen": "2026-03-05T12:00:00Z",
+      "last_seen": "2026-03-05T12:00:00Z"
+    },
+    {
+      "item_id": "asg_canvas_demo_5004",
+      "source_key": "canvas:101:5004",
+      "name": "Essay 3 Draft",
+      "course": "English Composition",
+      "status": "due_7d",
+      "due_at": "2026-03-10T12:00:00Z",
+      "date": "2026-03-10",
+      "confidence": "medium",
+      "first_seen": "2026-03-05T12:00:00Z",
+      "last_seen": "2026-03-05T12:00:00Z"
+    },
+    {
+      "item_id": "asg_canvas_demo_5005",
+      "source_key": "canvas:103:5005",
+      "name": "Nutrition Analysis Report",
+      "course": "Health Nutrition",
+      "status": "due_7d",
+      "due_at": "2026-03-11T12:00:00Z",
+      "date": "2026-03-11",
+      "confidence": "medium",
+      "first_seen": "2026-03-05T12:00:00Z",
+      "last_seen": "2026-03-05T12:00:00Z"
+    }
+  ],
+  "delta": {
+    "pulled_at": "2026-03-05T12:00:00Z",
+    "counts": {
+      "new": 4,
+      "reactivated": 0,
+      "escalated": 1,
+      "de_escalated": 0,
+      "cleared": 0,
+      "unchanged_active": 0,
+      "unchanged_inactive": 0
+    },
+    "changes": [
+      {
+        "item_id": "asg_canvas_demo_5001",
+        "name": "Quiz 5",
+        "course": "Philosophy",
+        "change_type": "new",
+        "from_status": "absent",
+        "to_status": "missing",
+        "from_due_at": "",
+        "to_due_at": "2026-02-28T23:59:00Z",
+        "due_at_changed": true,
+        "first_seen": "2026-03-05T12:00:00Z",
+        "last_seen": "2026-03-05T12:00:00Z",
+        "confidence": "high"
+      },
+      {
+        "item_id": "asg_canvas_demo_5002",
+        "name": "Reflection Paper 4",
+        "course": "Philosophy",
+        "change_type": "escalated",
+        "from_status": "due_7d",
+        "to_status": "due_48h",
+        "from_due_at": "2026-03-06T08:00:00Z",
+        "to_due_at": "2026-03-06T08:00:00Z",
+        "due_at_changed": false,
+        "first_seen": "2026-03-03T12:00:00Z",
+        "last_seen": "2026-03-05T12:00:00Z",
+        "confidence": "high"
+      },
+      {
+        "item_id": "asg_canvas_demo_5003",
+        "name": "Discussion Post Week 8",
+        "course": "English Composition",
+        "change_type": "new",
+        "from_status": "absent",
+        "to_status": "due_48h",
+        "from_due_at": "",
+        "to_due_at": "2026-03-07T00:00:00Z",
+        "due_at_changed": true,
+        "first_seen": "2026-03-05T12:00:00Z",
+        "last_seen": "2026-03-05T12:00:00Z",
+        "confidence": "high"
+      },
+      {
+        "item_id": "asg_canvas_demo_5004",
+        "name": "Essay 3 Draft",
+        "course": "English Composition",
+        "change_type": "new",
+        "from_status": "absent",
+        "to_status": "due_7d",
+        "from_due_at": "",
+        "to_due_at": "2026-03-10T12:00:00Z",
+        "due_at_changed": true,
+        "first_seen": "2026-03-05T12:00:00Z",
+        "last_seen": "2026-03-05T12:00:00Z",
+        "confidence": "medium"
+      },
+      {
+        "item_id": "asg_canvas_demo_5005",
+        "name": "Nutrition Analysis Report",
+        "course": "Health Nutrition",
+        "change_type": "new",
+        "from_status": "absent",
+        "to_status": "due_7d",
+        "from_due_at": "",
+        "to_due_at": "2026-03-11T12:00:00Z",
+        "due_at_changed": true,
+        "first_seen": "2026-03-05T12:00:00Z",
+        "last_seen": "2026-03-05T12:00:00Z",
+        "confidence": "medium"
+      }
+    ]
+  },
+  "risk": {
+    "overall": "MEDIUM",
+    "course_risks": {
+      "English Composition": "LOW",
+      "Philosophy": "MEDIUM",
+      "Health Nutrition": "LOW"
+    },
+    "missing_risk": "MEDIUM",
+    "flagged_courses": [
+      "Philosophy"
+    ],
+    "missing_count": 1
+  }
+}

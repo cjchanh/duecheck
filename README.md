@@ -35,11 +35,20 @@ export CANVAS_TOKEN="your-token-here"
 duecheck --canvas-url https://canvas.yourschool.edu --out-dir ./my-classes
 ```
 
+No Canvas account handy? Use the packaged demo bundle:
+
+```bash
+duecheck demo --out-dir ./demo
+duecheck report --html --out-dir ./demo
+```
+
 Output files:
 - `ledger.json` — full assignment ledger with status, dates, and confidence
 - `delta.json` — structured diff: what changed since last run
 - `changes.md` — human-readable changelog
 - `risk.json` — academic risk assessment
+- `report.html` — self-contained local dashboard
+- `runs/` — immutable per-run snapshots used for repair and history
 
 ## Example Output
 
@@ -90,6 +99,10 @@ Options:
   --grade-threshold N       Risk threshold (default: 80.0)
   --repair                  Rebuild delta from existing ledger
   --json                    Output summary as JSON
+
+Extra commands:
+  duecheck demo --out-dir DIR
+  duecheck report --html --out-dir DIR [--output PATH]
 ```
 
 ## How It Works
@@ -98,8 +111,9 @@ DueCheck maintains a **persistent assignment ledger** — a JSON file that track
 
 - `status`: `missing`, `due_48h`, `due_7d`, or `not_observed`
 - `first_seen` / `last_seen`: when the assignment entered and last appeared in a sync
+- `source_key`: LMS-backed identity when the adapter can provide one
 - `confidence`: `high` (missing/due_48h), `medium` (due_7d), `low` (not_observed)
-- `item_id`: deterministic hash of course + assignment name
+- `item_id`: deterministic hash of adapter-backed identity when available, otherwise course + assignment name
 
 Each run compares the current state to the previous ledger and classifies every assignment into one of:
 
@@ -127,6 +141,12 @@ duecheck/
 
 The `LMSAdapter` protocol is designed for future LMS support (Blackboard, Moodle, etc.) without rewriting the core engine.
 
+`--repair` rebuilds `delta.json` and `changes.md` by comparing the current top-level ledger against the latest prior snapshot in `runs/`.
+
+`duecheck demo` writes a sanitized sample bundle to disk so the repo can be explored without Canvas credentials.
+
+`duecheck report --html` renders a self-contained HTML view from local artifacts. No external service required.
+
 ## Development
 
 ```bash
@@ -137,6 +157,12 @@ pip install -e ".[dev]"
 pytest -v
 ruff check .
 ```
+
+## Community
+
+- [Contributing](CONTRIBUTING.md)
+- [Security Policy](SECURITY.md)
+- [Code of Conduct](CODE_OF_CONDUCT.md)
 
 ## License
 
