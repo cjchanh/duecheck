@@ -5,8 +5,9 @@
 - Engine-spec hardening remains landed and green.
 - Release-surface blockers are fixed locally and validated against a built wheel.
 - CLI UX surface for `init`, `doctor`, and `redact` is implemented locally and validated.
-- Scheduling surface for passive daily use is implemented locally and validated.
+- Scheduling surface for passive daily use is implemented and now verified against real `launchd`.
 - Hero asset batch completed with real screenshot and GIF captures.
+- Extension-wrapper phase 0 shell is landed in-repo.
 - Public release completed:
   - GitHub `main` pushed
   - public README media render verified
@@ -108,6 +109,29 @@
   - `python3 -m duecheck.cli schedule --help` → passed
   - `python3 -m duecheck.cli schedule install --help` → passed
   - verification artifacts: `release/evidence/schedule-surface/`
+  - real `launchd` smoke pass: passed
+    - installed LaunchAgent into the real `gui/<uid>` domain with isolated repo-local `HOME`/`XDG_CONFIG_HOME`
+    - `launchctl print gui/<uid>/io.duecheck.sync` reported the agent as loaded and running after `kickstart`
+    - controlled runner used `http://127.0.0.1:9` so execution could fail fast without touching real Canvas data
+    - `duecheck schedule remove` removed the plist and runner script cleanly afterward
+    - smoke evidence: `release/evidence/schedule-surface/launchd-smoke/20260306T092756Z/`
+
+## Extension Wrapper Phase 0 Status
+
+- Extension shell landed in-repo at `wrappers/chrome-extension/`
+- Current scope:
+  - MV3 popup shell
+  - background seeding of the real demo artifact bundle into extension storage
+  - same Today board, change feed, and course-risk language as the local report
+  - no external JavaScript dependencies
+- Verification:
+  - `node --test wrappers/chrome-extension/test/view-model.test.mjs` → passes
+  - the popup view-model is driven by the real artifact bundle shape, not a mock-only schema
+- Honest state:
+  - wrapper shell: implemented+tested for local module logic
+  - browser runtime load in Chrome: designed/unverified
+  - real Canvas sync pipeline: designed/unverified
+  - IndexedDB run history: designed/unverified
 
 ## Hero Asset Gate Status
 
@@ -126,14 +150,17 @@
 
 ## Deferred
 
-- Extension work
-  Deferred. This remains a separate wrapper project around the hardened engine contract.
+- Extension Canvas sync pipeline
+  Deferred. The current shell is seeded from the real demo artifact bundle, but it does not yet fetch live Canvas data.
+- Extension persistence and injection
+  Deferred. IndexedDB run history, Canvas DOM injection, and store-ready privacy/permission hardening remain separate work items.
 
 ## Next Planned Work
 
-- Extension wrapper
-  - separate project built on the current schemas, fixtures, and report language
-  - keep browser/runtime concerns out of the Python engine
+- Extension wrapper live-data phase
+  - add Canvas fetch pipeline in the background service worker
+  - normalize live data into the current Today/change/risk view model
+  - keep browser/runtime concerns out of the Python engine contract
 - Real-user evidence loop
   - use `doctor` and `redact` to collect reproducible bug reports and real usage signal before widening scope
 - Linux scheduling parity

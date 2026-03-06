@@ -112,6 +112,17 @@ duecheck report --html --out-dir ./duecheck-bugreport
 
 The redacted bundle keeps artifact structure, statuses, dates, counts, and change types, but replaces course names, assignment names, source keys, and derived item identities.
 
+## Experimental Extension Shell
+
+The first browser-wrapper move is now in-repo at [`wrappers/chrome-extension/`](wrappers/chrome-extension/).
+
+- MV3 popup shell
+- seeded from the real DueCheck demo artifact bundle
+- same Today board, change feed, and course-risk language as the local report
+- no external JavaScript dependencies
+
+Load it unpacked in Chrome if you want a click-open preview of the wrapper direction. Real Canvas sync, IndexedDB history, and DOM injection are still a separate strike.
+
 ## CLI Reference
 
 ```text
@@ -155,6 +166,7 @@ The CLI UX layer adds:
 - `duecheck schedule ...` for macOS-first passive daily sync and report refresh
 - `duecheck redact` for safe, reproducible bug-report bundles
 - runtime precedence of `CLI > env > config > hard default`
+- `wrappers/chrome-extension/` for the experimental MV3 wrapper shell seeded from the real demo bundle
 
 Backward compatibility is preserved for older artifacts through migration shims:
 
