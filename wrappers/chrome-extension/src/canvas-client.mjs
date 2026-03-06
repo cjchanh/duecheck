@@ -84,7 +84,7 @@ function normalizeAssignment(course, assignment) {
   };
 }
 
-export async function fetchUpcomingAssignments(apiBaseUrl, accessToken, { fetchImpl = fetch } = {}) {
+export async function fetchCanvasSnapshot(apiBaseUrl, accessToken, { fetchImpl = fetch } = {}) {
   const normalizedBase = normalizeApiBaseUrl(apiBaseUrl);
   const token = requireToken(accessToken);
   const headers = {
@@ -95,7 +95,10 @@ export async function fetchUpcomingAssignments(apiBaseUrl, accessToken, { fetchI
   coursesUrl.searchParams.set("enrollment_state", "active");
   const courses = await fetchPaginatedJson(coursesUrl.toString(), { fetchImpl, headers });
   if (!courses.length) {
-    return [];
+    return {
+      activeCourseCount: 0,
+      assignments: [],
+    };
   }
 
   const assignments = [];
@@ -108,9 +111,17 @@ export async function fetchUpcomingAssignments(apiBaseUrl, accessToken, { fetchI
     assignments.push(...courseAssignments.map((assignment) => normalizeAssignment(course, assignment)));
   }
 
-  return assignments.sort((left, right) =>
-    `${left.dueAt ?? ""}|${left.courseName}|${left.name}`.localeCompare(
-      `${right.dueAt ?? ""}|${right.courseName}|${right.name}`,
+  return {
+    activeCourseCount: courses.length,
+    assignments: assignments.sort((left, right) =>
+      `${left.dueAt ?? ""}|${left.courseName}|${left.name}`.localeCompare(
+        `${right.dueAt ?? ""}|${right.courseName}|${right.name}`,
+      ),
     ),
-  );
+  };
+}
+
+export async function fetchUpcomingAssignments(apiBaseUrl, accessToken, { fetchImpl = fetch } = {}) {
+  const snapshot = await fetchCanvasSnapshot(apiBaseUrl, accessToken, { fetchImpl });
+  return snapshot.assignments;
 }

@@ -1,4 +1,5 @@
-import { fetchUpcomingAssignments } from "./canvas-client.mjs";
+import { fetchCanvasSnapshot } from "./canvas-client.mjs";
+import { diffAssignmentSnapshots } from "./snapshot-diff.mjs";
 
 export const SYNC_ALARM_NAME = "duecheck-sync";
 const SYNC_PERIOD_MINUTES = 60;
@@ -10,7 +11,10 @@ function nowIso(now) {
 async function getLocalState(chromeApi) {
   return chromeApi.storage.local.get([
     "settings",
+    "activeCourseCount",
     "assignments",
+    "changes",
+    "changeCounts",
     "syncError",
     "lastAttemptAt",
     "lastSuccessAt",
@@ -19,7 +23,7 @@ async function getLocalState(chromeApi) {
 
 export function createBackgroundController({
   chromeApi = chrome,
-  fetchAssignments = fetchUpcomingAssignments,
+  fetchSnapshot = fetchCanvasSnapshot,
   now = () => new Date(),
 } = {}) {
   async function ensureAlarm() {
@@ -47,19 +51,32 @@ export function createBackgroundController({
     }
 
     try {
-      const assignments = await fetchAssignments(apiBaseUrl, accessToken);
+      const snapshot = await fetchSnapshot(apiBaseUrl, accessToken);
+      const assignments = Array.isArray(snapshot?.assignments) ? snapshot.assignments : [];
+      const diff = diffAssignmentSnapshots(state.assignments ?? [], assignments, { now: now() });
       const lastSuccessAt = nowIso(now);
       await chromeApi.storage.local.set({
+        activeCourseCount: Number(snapshot?.activeCourseCount ?? 0),
         assignments,
+        changes: diff.changes,
+        changeCounts: diff.counts,
         syncError: null,
         lastAttemptAt,
         lastSuccessAt,
       });
-      return { ok: true, assignmentsCount: assignments.length, lastSuccessAt };
+      return {
+        ok: true,
+        assignmentsCount: assignments.length,
+        changeCount: diff.changes.length,
+        lastSuccessAt,
+      };
     } catch (error) {
       await chromeApi.storage.local.set({
         syncError: error instanceof Error ? error.message : String(error),
         lastAttemptAt,
+        activeCourseCount: state.activeCourseCount ?? 0,
+        changes: state.changes ?? [],
+        changeCounts: state.changeCounts ?? null,
         lastSuccessAt: state.lastSuccessAt ?? null,
       });
       return { ok: false, reason: "sync-failed", error: error instanceof Error ? error.message : String(error) };

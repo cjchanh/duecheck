@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { fetchUpcomingAssignments } from "../src/canvas-client.mjs";
+import { fetchCanvasSnapshot, fetchUpcomingAssignments } from "../src/canvas-client.mjs";
 
 function response(payload, { ok = true, status = 200, link = null } = {}) {
   return {
@@ -60,7 +60,7 @@ test("threat_invalid_base_url_throws", async () => {
 
 test("test_parses_assignments_correctly", async () => {
   const calls = [];
-  const assignments = await fetchUpcomingAssignments("https://canvas.example.edu/", "token", {
+  const snapshot = await fetchCanvasSnapshot("https://canvas.example.edu/", "token", {
     fetchImpl: async (url, options) => {
       calls.push({ url, options });
       if (url.includes("/courses?")) {
@@ -80,8 +80,9 @@ test("test_parses_assignments_correctly", async () => {
     },
   });
 
-  assert.equal(assignments.length, 1);
-  assert.deepEqual(assignments[0], {
+  assert.equal(snapshot.activeCourseCount, 1);
+  assert.equal(snapshot.assignments.length, 1);
+  assert.deepEqual(snapshot.assignments[0], {
     id: 555,
     courseId: 101,
     courseName: "English Composition",
@@ -96,15 +97,18 @@ test("test_parses_assignments_correctly", async () => {
 });
 
 test("test_handles_empty_courses", async () => {
-  const assignments = await fetchUpcomingAssignments("https://canvas.example.edu", "token", {
+  const snapshot = await fetchCanvasSnapshot("https://canvas.example.edu", "token", {
     fetchImpl: async () => response([]),
   });
-  assert.deepEqual(assignments, []);
+  assert.deepEqual(snapshot, {
+    activeCourseCount: 0,
+    assignments: [],
+  });
 });
 
 test("test_follows_course_pagination", async () => {
   const urls = [];
-  const assignments = await fetchUpcomingAssignments("https://canvas.example.edu", "token", {
+  const snapshot = await fetchCanvasSnapshot("https://canvas.example.edu", "token", {
     fetchImpl: async (url) => {
       urls.push(url);
       if (url === "https://canvas.example.edu/api/v1/courses?enrollment_state=active") {
@@ -122,13 +126,14 @@ test("test_follows_course_pagination", async () => {
     },
   });
 
-  assert.equal(assignments.length, 2);
+  assert.equal(snapshot.activeCourseCount, 2);
+  assert.equal(snapshot.assignments.length, 2);
   assert.equal(urls.includes("https://canvas.example.edu/api/v1/courses?page=2"), true);
 });
 
 test("test_follows_assignment_pagination", async () => {
   const urls = [];
-  const assignments = await fetchUpcomingAssignments("https://canvas.example.edu", "token", {
+  const snapshot = await fetchCanvasSnapshot("https://canvas.example.edu", "token", {
     fetchImpl: async (url) => {
       urls.push(url);
       if (url.includes("/courses?")) {
@@ -143,6 +148,20 @@ test("test_follows_assignment_pagination", async () => {
     },
   });
 
-  assert.equal(assignments.length, 2);
+  assert.equal(snapshot.assignments.length, 2);
   assert.equal(urls.includes("https://canvas.example.edu/api/v1/courses/101/assignments?page=2"), true);
+});
+
+test("test_fetch_upcoming_assignments_keeps_compatibility_wrapper", async () => {
+  const assignments = await fetchUpcomingAssignments("https://canvas.example.edu", "token", {
+    fetchImpl: async (url) => {
+      if (url.includes("/courses?")) {
+        return response([{ id: 101, name: "English" }]);
+      }
+      return response([{ id: 1, name: "Essay", due_at: null }]);
+    },
+  });
+
+  assert.equal(assignments.length, 1);
+  assert.equal(assignments[0].courseName, "English");
 });
