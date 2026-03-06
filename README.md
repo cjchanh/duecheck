@@ -78,6 +78,7 @@ If you want to run DueCheck more than once without retyping your Canvas URL and 
 ```bash
 duecheck init
 duecheck doctor
+duecheck schedule install
 duecheck
 ```
 
@@ -88,6 +89,16 @@ CLI flags > environment variables > config file > hard default
 ```
 
 If you choose to save a Canvas token with `duecheck init`, it is stored as plaintext on disk in your local config file. DueCheck does not claim to encrypt it.
+
+macOS-first passive scheduling is available through:
+
+```bash
+duecheck schedule install
+duecheck schedule status
+duecheck schedule remove
+```
+
+The scheduler installs a LaunchAgent that runs the normal pull flow and refreshes `report.html`. If a token is not already stored in config, the install step may embed the currently resolved token in a private local runner script so the scheduled job does not depend on shell env inheritance.
 
 ## Safe Bug Reports
 
@@ -119,6 +130,9 @@ Extra commands:
   duecheck init [--yes] [--print-path]
   duecheck demo --out-dir DIR [--json] [--open]
   duecheck doctor [--out-dir DIR] [--check-auth] [--json]
+  duecheck schedule install [--hour H] [--minute M] [--json]
+  duecheck schedule status [--json]
+  duecheck schedule remove [--json]
   duecheck redact --out-dir DIR --dest DIR [--json]
   duecheck verify --out-dir DIR [--json]
   duecheck report --html --out-dir DIR [--output PATH] [--json] [--open]
@@ -138,6 +152,7 @@ The CLI UX layer adds:
 
 - `duecheck init` for local config bootstrap at `~/.config/duecheck/config.json`
 - `duecheck doctor` for local diagnostics before you file an issue
+- `duecheck schedule ...` for macOS-first passive daily sync and report refresh
 - `duecheck redact` for safe, reproducible bug-report bundles
 - runtime precedence of `CLI > env > config > hard default`
 

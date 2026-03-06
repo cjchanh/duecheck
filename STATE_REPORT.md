@@ -5,6 +5,7 @@
 - Engine-spec hardening remains landed and green.
 - Release-surface blockers are fixed locally and validated against a built wheel.
 - CLI UX surface for `init`, `doctor`, and `redact` is implemented locally and validated.
+- Scheduling surface for passive daily use is implemented locally and validated.
 - Hero asset batch completed with real screenshot and GIF captures.
 - Public release completed:
   - GitHub `main` pushed
@@ -81,7 +82,7 @@
   - `duecheck redact` now writes `ledger.json`, `delta.json`, `risk.json`, `changes.md`, `pulled_at.txt`, and `report.html`
   - the redacted bundle validates with `duecheck verify`
   - the redacted bundle re-renders with `duecheck report --html`
-- Final test count: `102`
+- Final test count before scheduling: `102`
 
 ## CLI UX Batch Notes
 
@@ -90,6 +91,23 @@
 - Added `duecheck doctor` for local config, token-source, asset, output-dir, and artifact diagnostics.
 - Added `duecheck redact` for deterministic redacted bug-report bundles.
 - Preserved engine computation contracts; this change only widened CLI UX and redaction support around the hardened engine.
+
+## Scheduling Surface Status
+
+- Scheduling commit landed:
+  - `3efb959` — `feat(cli): add macOS-first schedule surface`
+- Scheduling is now macOS-first through `duecheck schedule install|status|remove`.
+- The schedule installs a LaunchAgent plus a local runner script that reuses the existing pull and report flows.
+- Token handling:
+  - preferred: config-stored token
+  - fallback: embed the currently resolved token in the private runner script when install cannot rely on shell env inheritance
+- Engine computation contracts remain unchanged; scheduling wraps the hardened CLI surface.
+- Verification:
+  - `python3 -m pytest -q` → `107 passed`
+  - `./.venv/bin/ruff check .` → `All checks passed!`
+  - `python3 -m duecheck.cli schedule --help` → passed
+  - `python3 -m duecheck.cli schedule install --help` → passed
+  - verification artifacts: `release/evidence/schedule-surface/`
 
 ## Hero Asset Gate Status
 
@@ -108,21 +126,18 @@
 
 ## Deferred
 
-- Scheduling work
-  Deferred. This is the next delivery-shell layer for passive daily use.
 - Extension work
   Deferred. This remains a separate wrapper project around the hardened engine contract.
 
 ## Next Planned Work
 
-- Scheduling/passive daily use
-  - local install surface for recurring sync and report refresh
-  - macOS-first, then Linux
 - Extension wrapper
   - separate project built on the current schemas, fixtures, and report language
   - keep browser/runtime concerns out of the Python engine
 - Real-user evidence loop
   - use `doctor` and `redact` to collect reproducible bug reports and real usage signal before widening scope
+- Linux scheduling parity
+  - add a user-level timer path after the macOS surface settles
 
 ## Active Invariants Held
 
