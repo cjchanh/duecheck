@@ -1,0 +1,57 @@
+[
+  {
+    "item_id": "asg_fcec1ce736ac0979",
+    "name": "Quiz 5",
+    "course": "Philosophy",
+    "status": "missing",
+    "due_at": "2026-02-28T23:59:00Z",
+    "date": "2026-02-28",
+    "confidence": "high",
+    "first_seen": "2026-03-05T12:00:00Z",
+    "last_seen": "2026-03-05T12:00:00Z"
+  },
+  {
+    "item_id": "asg_efb83265d5deb028",
+    "name": "Reflection Paper 4",
+    "course": "Philosophy",
+    "status": "due_48h",
+    "due_at": "2026-03-06T08:00:00Z",
+    "date": "2026-03-06",
+    "confidence": "high",
+    "first_seen": "2026-03-03T12:00:00Z",
+    "last_seen": "2026-03-05T12:00:00Z"
+  },
+  {
+    "item_id": "asg_1942b4832866dc33",
+    "name": "Discussion Post Week 8",
+    "course": "English Composition",
+    "status": "due_48h",
+    "due_at": "2026-03-07T00:00:00Z",
+    "date": "2026-03-07",
+    "confidence": "high",
+    "first_seen": "2026-03-05T12:00:00Z",
+    "last_seen": "2026-03-05T12:00:00Z"
+  },
+  {
+    "item_id": "asg_3477c94313093e8d",
+    "name": "Essay 3 Draft",
+    "course": "English Composition",
+    "status": "due_7d",
+    "due_at": "2026-03-10T12:00:00Z",
+    "date": "2026-03-10",
+    "confidence": "medium",
+    "first_seen": "2026-03-05T12:00:00Z",
+    "last_seen": "2026-03-05T12:00:00Z"
+  },
+  {
+    "item_id": "asg_3b55b649f9ade868",
+    "name": "Nutrition Analysis Report",
+    "course": "Health Nutrition",
+    "status": "due_7d",
+    "due_at": "2026-03-11T12:00:00Z",
+    "date": "2026-03-11",
+    "confidence": "medium",
+    "first_seen": "2026-03-05T12:00:00Z",
+    "last_seen": "2026-03-05T12:00:00Z"
+  }
+]

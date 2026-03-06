@@ -1,0 +1,84 @@
+{
+  "pulled_at": "2026-03-05T12:00:00Z",
+  "counts": {
+    "new": 4,
+    "reactivated": 0,
+    "escalated": 1,
+    "de_escalated": 0,
+    "cleared": 0,
+    "unchanged_active": 0,
+    "unchanged_inactive": 0
+  },
+  "changes": [
+    {
+      "item_id": "asg_fcec1ce736ac0979",
+      "name": "Quiz 5",
+      "course": "Philosophy",
+      "change_type": "new",
+      "from_status": "absent",
+      "to_status": "missing",
+      "from_due_at": "",
+      "to_due_at": "2026-02-28T23:59:00Z",
+      "due_at_changed": true,
+      "first_seen": "2026-03-05T12:00:00Z",
+      "last_seen": "2026-03-05T12:00:00Z",
+      "confidence": "high"
+    },
+    {
+      "item_id": "asg_efb83265d5deb028",
+      "name": "Reflection Paper 4",
+      "course": "Philosophy",
+      "change_type": "escalated",
+      "from_status": "due_7d",
+      "to_status": "due_48h",
+      "from_due_at": "2026-03-06T08:00:00Z",
+      "to_due_at": "2026-03-06T08:00:00Z",
+      "due_at_changed": false,
+      "first_seen": "2026-03-03T12:00:00Z",
+      "last_seen": "2026-03-05T12:00:00Z",
+      "confidence": "high"
+    },
+    {
+      "item_id": "asg_1942b4832866dc33",
+      "name": "Discussion Post Week 8",
+      "course": "English Composition",
+      "change_type": "new",
+      "from_status": "absent",
+      "to_status": "due_48h",
+      "from_due_at": "",
+      "to_due_at": "2026-03-07T00:00:00Z",
+      "due_at_changed": true,
+      "first_seen": "2026-03-05T12:00:00Z",
+      "last_seen": "2026-03-05T12:00:00Z",
+      "confidence": "high"
+    },
+    {
+      "item_id": "asg_3477c94313093e8d",
+      "name": "Essay 3 Draft",
+      "course": "English Composition",
+      "change_type": "new",
+      "from_status": "absent",
+      "to_status": "due_7d",
+      "from_due_at": "",
+      "to_due_at": "2026-03-10T12:00:00Z",
+      "due_at_changed": true,
+      "first_seen": "2026-03-05T12:00:00Z",
+      "last_seen": "2026-03-05T12:00:00Z",
+      "confidence": "medium"
+    },
+    {
+      "item_id": "asg_3b55b649f9ade868",
+      "name": "Nutrition Analysis Report",
+      "course": "Health Nutrition",
+      "change_type": "new",
+      "from_status": "absent",
+      "to_status": "due_7d",
+      "from_due_at": "",
+      "to_due_at": "2026-03-11T12:00:00Z",
+      "due_at_changed": true,
+      "first_seen": "2026-03-05T12:00:00Z",
+      "last_seen": "2026-03-05T12:00:00Z",
+      "confidence": "medium"
+    }
+  ]
+}
