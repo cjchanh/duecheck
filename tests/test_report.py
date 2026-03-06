@@ -19,5 +19,10 @@ def test_render_report_html_contains_core_sections(tmp_path: Path):
     context = load_report_context(tmp_path)
     html = render_report_html(context)
     assert "DueCheck Local Report" in html
+    assert "What changed since your last check." in html
+    assert "<h2>Today</h2>" in html
+    assert "Overdue" in html
+    assert "Due In 48 Hours" in html
+    assert "Due This Week" in html
     assert "Change Feed" in html
     assert "Active Ledger" in html
