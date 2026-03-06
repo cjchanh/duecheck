@@ -21,6 +21,13 @@ from .ledger import build_ledger, load_existing_ledger, resolve_repair_pulled_ts
 from .redact import build_redacted_bundle
 from .report import write_report_html
 from .risk import compute_overall_risk
+from .schedule import (
+    DEFAULT_SCHEDULE_HOUR,
+    DEFAULT_SCHEDULE_MINUTE,
+    install_schedule,
+    remove_schedule,
+    schedule_status,
+)
 from .types import delta_report_from_mapping, ledger_entry_from_mapping, risk_report_from_mapping, serialize_payload
 from .validate import validate_artifacts, validate_payloads
 
@@ -298,7 +305,8 @@ def parse_pull_args(argv: list[str] | None = None) -> argparse.Namespace:
         epilog=(
             "Extra commands: 'duecheck init', 'duecheck demo --out-dir DIR', "
             "'duecheck doctor --out-dir DIR', 'duecheck redact --out-dir DIR --dest DIR', "
-            "'duecheck report --html --out-dir DIR', and 'duecheck verify --out-dir DIR'."
+            "'duecheck report --html --out-dir DIR', 'duecheck schedule ...', "
+            "and 'duecheck verify --out-dir DIR'."
         ),
     )
     parser.add_argument(
@@ -504,6 +512,69 @@ def parse_verify_args(argv: list[str] | None = None) -> argparse.Namespace:
         dest="json_output",
         help="Output validation results as JSON",
     )
+    return parser.parse_args(argv)
+
+
+def parse_schedule_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        prog="duecheck schedule",
+        description="Install or inspect a local DueCheck sync schedule (macOS-first).",
+    )
+    subparsers = parser.add_subparsers(dest="schedule_command", required=True)
+
+    install_parser = subparsers.add_parser(
+        "install",
+        help="Install a macOS LaunchAgent that runs DueCheck daily and refreshes the HTML report.",
+    )
+    install_parser.add_argument("--hour", type=int, choices=range(24), default=DEFAULT_SCHEDULE_HOUR)
+    install_parser.add_argument("--minute", type=int, choices=range(60), default=DEFAULT_SCHEDULE_MINUTE)
+    install_parser.add_argument("--canvas-url", default=None, help="Canvas base URL override for the scheduled job")
+    install_parser.add_argument(
+        "--token-env",
+        default=None,
+        help="Environment variable name containing the Canvas token for schedule install",
+    )
+    install_parser.add_argument(
+        "--canvas-token",
+        default=None,
+        help="Canvas token to resolve during schedule install",
+    )
+    install_parser.add_argument("--out-dir", default=None, help="Output directory override for the scheduled job")
+    install_parser.add_argument(
+        "--course-filter",
+        nargs="*",
+        default=None,
+        help="Course name substrings to filter in the scheduled job",
+    )
+    install_parser.add_argument(
+        "--grade-threshold",
+        type=float,
+        default=None,
+        help="Risk threshold override for the scheduled job",
+    )
+    install_parser.add_argument(
+        "--json",
+        action="store_true",
+        dest="json_output",
+        help="Output schedule details as JSON",
+    )
+
+    status_parser = subparsers.add_parser("status", help="Show the current schedule status.")
+    status_parser.add_argument(
+        "--json",
+        action="store_true",
+        dest="json_output",
+        help="Output schedule details as JSON",
+    )
+
+    remove_parser = subparsers.add_parser("remove", help="Remove the current macOS LaunchAgent schedule.")
+    remove_parser.add_argument(
+        "--json",
+        action="store_true",
+        dest="json_output",
+        help="Output schedule details as JSON",
+    )
+
     return parser.parse_args(argv)
 
 
@@ -1143,6 +1214,49 @@ def main(argv: list[str] | None = None) -> int:
                     for error in errors:
                         print(f"  - {error}")
         return exit_code
+
+    if argv and argv[0] == "schedule":
+        args = parse_schedule_args(argv[1:])
+        try:
+            if args.schedule_command == "install":
+                result = install_schedule(
+                    hour=args.hour,
+                    minute=args.minute,
+                    canvas_url=args.canvas_url,
+                    canvas_token=args.canvas_token,
+                    token_env=args.token_env,
+                    out_dir=args.out_dir,
+                    course_filter=args.course_filter,
+                    grade_threshold=args.grade_threshold,
+                )
+            elif args.schedule_command == "status":
+                result = schedule_status()
+            else:
+                result = remove_schedule()
+        except Exception as exc:
+            print(f"ERROR: {exc}", file=sys.stderr)
+            return 1
+
+        if args.json_output:
+            print(json.dumps(result, indent=2))
+        elif args.schedule_command == "install":
+            print(
+                f"SCHEDULE: installed {result['label']} at {result['hour']:02d}:{result['minute']:02d} "
+                f"plist={result['plist_path']} token={result['token_storage']}"
+            )
+        elif args.schedule_command == "status":
+            if result["status"] == "installed":
+                state = "loaded" if result.get("loaded") else "present"
+                print(
+                    f"SCHEDULE: {state} {result['label']} at "
+                    f"{result['hour']:02d}:{result['minute']:02d} plist={result['plist_path']}"
+                )
+            else:
+                detail = result.get("detail", result["status"])
+                print(f"SCHEDULE: {detail}")
+        else:
+            print(f"SCHEDULE: {result['status']}")
+        return 0
 
     if argv and argv[0] == "report":
         args = parse_report_args(argv[1:])
