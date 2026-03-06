@@ -158,7 +158,7 @@ function buildLiveViewModel(payload, { now = new Date() } = {}) {
   return {
     modeLine: "Live Canvas preview. Upcoming assignments only in this phase.",
     cards: [
-      { label: "Courses", value: String(courseCount), tone: "neutral" },
+      { label: "Courses With Upcoming Work", value: String(courseCount), tone: "neutral" },
       { label: "Upcoming", value: String(assignments.length), tone: "neutral" },
       { label: "Due In 48 Hours", value: String(grouped.due48.length), tone: "warning" },
       { label: "Due This Week", value: String(grouped.due7.length), tone: "safe" },
