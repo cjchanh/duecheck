@@ -7,6 +7,7 @@ from duecheck.types import (
     format_due_at,
     format_due_date,
     ledger_item_id,
+    match_entry,
     parse_datetime,
 )
 
@@ -57,6 +58,25 @@ def test_ledger_item_id_different_inputs():
     id1 = ledger_item_id("English", "Essay 1")
     id2 = ledger_item_id("Philosophy", "Essay 1")
     assert id1 != id2
+
+
+def test_ledger_item_id_uses_source_key_when_available():
+    id1 = ledger_item_id("English", "Essay 1", source_key="canvas:101:555")
+    id2 = ledger_item_id("English", "Essay 1 renamed", source_key="canvas:101:555")
+    assert id1 == id2
+
+
+def test_match_entry_falls_back_to_course_and_name():
+    entry = {
+        "item_id": ledger_item_id("English", "Essay 1", source_key="canvas:101:555"),
+        "source_key": "canvas:101:555",
+        "course": "English",
+        "name": "Essay 1",
+        "status": "due_7d",
+    }
+    matched_id, matched = match_entry({"current": entry}, course="ENGLISH", name="essay 1")
+    assert matched_id == "current"
+    assert matched is entry
 
 
 def test_course_info_frozen():

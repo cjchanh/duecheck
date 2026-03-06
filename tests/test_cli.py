@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import patch
 
-from duecheck.cli import main, run_pull, run_repair
+from duecheck.cli import main, run_demo, run_pull, run_repair, run_report
 
 from .conftest import make_urlopen
 
@@ -18,9 +18,9 @@ def _make_course(course_id: int, name: str, score: float = 90.0):
     }
 
 
-def _make_assignment(name: str, due_at: str, submitted: bool = False):
+def _make_assignment(name: str, due_at: str, submitted: bool = False, assignment_id: int = 1):
     submission = {"submitted_at": "2026-03-01T00:00:00Z"} if submitted else {}
-    return {"name": name, "due_at": due_at, "submission": submission}
+    return {"id": assignment_id, "name": name, "due_at": due_at, "submission": submission}
 
 
 def test_main_no_canvas_url():
@@ -58,6 +58,7 @@ def test_run_pull_success(tmp_path: Path):
     assert (tmp_path / "delta.json").exists()
     assert (tmp_path / "risk.json").exists()
     assert (tmp_path / "changes.md").exists()
+    assert (tmp_path / "runs" / "2026-03-05T12-00-00Z" / "ledger.json").exists()
 
 
 def test_run_pull_json_output(tmp_path: Path):
@@ -87,16 +88,86 @@ def test_repair_no_ledger(tmp_path: Path):
     assert result["status"] == "skipped"
 
 
-def test_repair_valid_ledger(tmp_path: Path):
-    ledger = [
-        {"item_id": "asg_abc", "name": "Essay 1", "course": "English",
-         "status": "missing", "due_at": "2026-03-10T23:59:00Z",
-         "first_seen": "2026-03-01T00:00:00Z", "last_seen": "2026-03-05T00:00:00Z",
-         "date": "2026-03-10", "confidence": "high"},
-    ]
+def test_repair_requires_prior_snapshot(tmp_path: Path):
+    ledger = [{
+        "item_id": "asg_abc",
+        "source_key": "",
+        "name": "Essay 1",
+        "course": "English",
+        "status": "missing",
+        "due_at": "2026-03-10T23:59:00Z",
+        "first_seen": "2026-03-01T00:00:00Z",
+        "last_seen": "2026-03-05T00:00:00Z",
+        "date": "2026-03-10",
+        "confidence": "high",
+    }]
     (tmp_path / "ledger.json").write_text(json.dumps(ledger))
     (tmp_path / "pulled_at.txt").write_text("2026-03-05T12:00:00Z")
     result = run_repair(tmp_path)
+    assert result["status"] == "skipped"
+
+
+def test_repair_uses_latest_prior_snapshot(tmp_path: Path):
+    previous_run = tmp_path / "runs" / "2026-03-04T12-00-00Z"
+    previous_run.mkdir(parents=True)
+    previous_ledger = [{
+        "item_id": "asg_abc",
+        "source_key": "canvas:101:1",
+        "name": "Essay 1",
+        "course": "English",
+        "status": "due_7d",
+        "due_at": "2026-03-10T23:59:00Z",
+        "first_seen": "2026-03-01T00:00:00Z",
+        "last_seen": "2026-03-04T12:00:00Z",
+        "date": "2026-03-10",
+        "confidence": "medium",
+    }]
+    (previous_run / "ledger.json").write_text(json.dumps(previous_ledger))
+    (previous_run / "pulled_at.txt").write_text("2026-03-04T12:00:00Z\n")
+
+    current_ledger = [{
+        "item_id": "asg_abc",
+        "source_key": "canvas:101:1",
+        "name": "Essay 1",
+        "course": "English",
+        "status": "missing",
+        "due_at": "2026-03-10T23:59:00Z",
+        "first_seen": "2026-03-01T00:00:00Z",
+        "last_seen": "2026-03-05T12:00:00Z",
+        "date": "2026-03-10",
+        "confidence": "high",
+    }]
+    (tmp_path / "ledger.json").write_text(json.dumps(current_ledger))
+    (tmp_path / "pulled_at.txt").write_text("2026-03-05T12:00:00Z\n")
+
+    result = run_repair(tmp_path)
     assert result["status"] == "repaired"
+    assert result["counts"]["escalated"] == 1
+    delta = json.loads((tmp_path / "delta.json").read_text())
+    assert delta["counts"]["escalated"] == 1
+
+
+def test_run_demo_writes_artifacts_and_report(tmp_path: Path):
+    result = run_demo(tmp_path)
+    assert result["status"] == "demo_ready"
+    assert (tmp_path / "ledger.json").exists()
     assert (tmp_path / "delta.json").exists()
+    assert (tmp_path / "risk.json").exists()
     assert (tmp_path / "changes.md").exists()
+    assert (tmp_path / "report.html").exists()
+
+
+def test_run_report_writes_html(tmp_path: Path):
+    run_demo(tmp_path)
+    output_path = tmp_path / "site" / "index.html"
+    result = run_report(tmp_path, html=True, output_path=output_path)
+    assert result["status"] == "report_ready"
+    assert output_path.exists()
+    html = output_path.read_text()
+    assert "What changed. What matters." in html
+
+
+def test_main_report_requires_html(tmp_path: Path):
+    run_demo(tmp_path)
+    result = main(["report", "--out-dir", str(tmp_path)])
+    assert result == 1

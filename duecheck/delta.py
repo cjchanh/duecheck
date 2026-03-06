@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from .types import LEDGER_STATUS_PRIORITY
+from .types import LEDGER_STATUS_PRIORITY, match_entry
 
 
 def build_delta(
@@ -26,7 +26,13 @@ def build_delta(
         item_id = str(current.get("item_id") or "")
         if not item_id:
             continue
-        previous = previous_ledger.get(item_id)
+        _, previous = match_entry(
+            previous_ledger,
+            course=str(current.get("course") or ""),
+            name=str(current.get("name") or ""),
+            source_key=str(current.get("source_key") or "") or None,
+            item_id=item_id,
+        )
         from_status = str(previous.get("status") or "absent") if previous else "absent"
         to_status = str(current.get("status") or "not_observed")
         from_rank = LEDGER_STATUS_PRIORITY.get(from_status, -1)

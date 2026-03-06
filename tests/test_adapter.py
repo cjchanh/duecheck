@@ -15,11 +15,11 @@ def _make_course(course_id: int, name: str, score: float | None = None):
     return {"id": course_id, "name": name, "enrollments": enrollments}
 
 
-def _make_assignment(name: str, due_at: str | None, submitted: bool = False):
+def _make_assignment(name: str, due_at: str | None, submitted: bool = False, assignment_id: int = 1):
     submission = {}
     if submitted:
         submission = {"submitted_at": "2026-03-01T00:00:00Z", "workflow_state": "submitted"}
-    return {"name": name, "due_at": due_at, "submission": submission}
+    return {"id": assignment_id, "name": name, "due_at": due_at, "submission": submission}
 
 
 def test_adapter_implements_protocol():
@@ -85,7 +85,8 @@ def test_get_unsubmitted_assignments():
     adapter = CanvasAdapter("https://canvas.example.com", "fake-token", urlopen_fn=urlopen)
     items = adapter.get_unsubmitted_assignments(101, now)
     assert len(items) == 1
-    assert items[0][2] == "Essay 1"
+    assert items[0].name == "Essay 1"
+    assert items[0].source_key == "canvas:101:1"
 
 
 def test_get_due_items():
@@ -103,9 +104,9 @@ def test_get_due_items():
     adapter = CanvasAdapter("https://canvas.example.com", "fake-token", urlopen_fn=urlopen)
     due_48h, due_7d = adapter.get_due_items(now)
     assert len(due_48h) == 1
-    assert due_48h[0][2] == "Due Soon"
+    assert due_48h[0].name == "Due Soon"
     assert len(due_7d) == 1
-    assert due_7d[0][2] == "Due 5 Days"
+    assert due_7d[0].name == "Due 5 Days"
 
 
 def test_get_missing_submissions():

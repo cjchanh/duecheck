@@ -19,11 +19,26 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
 ]
 
+[project.optional-dependencies]
+dev = [
+    "mypy>=1.11",
+    "pytest>=8.0",
+    "ruff>=0.15.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/cjchanh/duecheck"
+Issues = "https://github.com/cjchanh/duecheck/issues"
+Source = "https://github.com/cjchanh/duecheck"
+
 [project.scripts]
 duecheck = "duecheck.cli:main"
 
 [tool.setuptools.packages.find]
 include = ["duecheck*"]
+
+[tool.setuptools.package-data]
+duecheck = ["demo_data/*.json"]
 
 [tool.ruff]
 line-length = 120
