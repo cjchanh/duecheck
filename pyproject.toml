@@ -21,9 +21,11 @@ classifiers = [
 
 [project.optional-dependencies]
 dev = [
+    "build>=1.2",
     "mypy>=1.11",
     "pytest>=8.0",
     "ruff>=0.15.0",
+    "twine>=6.0",
 ]
 
 [project.urls]
@@ -38,7 +40,7 @@ duecheck = "duecheck.cli:main"
 include = ["duecheck*"]
 
 [tool.setuptools.package-data]
-duecheck = ["demo_data/*.json"]
+duecheck = ["demo_data/*.json", "schemas/*.json"]
 
 [tool.ruff]
 line-length = 120
