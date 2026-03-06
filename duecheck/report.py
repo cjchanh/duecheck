@@ -146,13 +146,14 @@ def _render_changes(context: dict) -> str:
 def _render_active_items(context: dict) -> str:
     rows = []
     for item in context["active_items"]:
+        severity_label = str(item.get("severity_label") or item.get("confidence") or "")
         rows.append(
             "<tr>"
             f"<td>{escape(str(item.get('date') or ''))}</td>"
             f"<td>{escape(str(item.get('course') or ''))}</td>"
             f"<td>{escape(str(item.get('name') or ''))}</td>"
             f"<td>{escape(str(item.get('status') or ''))}</td>"
-            f"<td>{escape(str(item.get('confidence') or ''))}</td>"
+            f"<td>{escape(severity_label)}</td>"
             "</tr>"
         )
     return "\n".join((
@@ -160,7 +161,7 @@ def _render_active_items(context: dict) -> str:
         "<h2>Active Ledger</h2>",
         (
             "<div class=\"table-shell\"><table><thead><tr>"
-            "<th>Date</th><th>Course</th><th>Assignment</th><th>Status</th><th>Confidence</th>"
+            "<th>Date</th><th>Course</th><th>Assignment</th><th>Status</th><th>Severity</th>"
             "</tr></thead><tbody>"
         ),
         "".join(rows) or '<tr><td colspan="5" class="empty">No active assignments.</td></tr>',
