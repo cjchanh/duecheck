@@ -2,11 +2,15 @@
 
 DueCheck tells you what changed in Canvas since your last check.
 
+<!-- Hero screenshot slot: docs/assets/report-demo.png -->
+<!-- ![DueCheck local report demo](docs/assets/report-demo.png) -->
+
 - See new deadlines, missing work, and escalations without re-reading every course page.
 - Keep a local assignment ledger and compare today against the last good snapshot.
 - Generate a static report you can open in a browser with no hosted service and no runtime dependencies.
 
-<!-- TODO: add screenshot of report.html from duecheck demo -->
+<!-- Hero terminal GIF slot: docs/assets/demo-flow.gif -->
+<!-- ![DueCheck demo flow](docs/assets/demo-flow.gif) -->
 
 ## Quick Start
 
