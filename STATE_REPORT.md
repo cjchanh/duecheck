@@ -80,6 +80,7 @@
   - `cf5db67` — `feat(extension): Canvas API client with pagination and validation`
   - `780ca18` — `feat(extension): background sync with alarms, sync-now, graceful failure`
   - `dd2eb00` — `feat(extension): popup states, security, and dynamic host permissions`
+  - `35d6c1d` — `docs(extension): load test checklist, scope truth, and evidence bundle`
 - Honest state:
   - local module logic: implemented+tested
   - browser runtime load in Chrome: designed/unverified
