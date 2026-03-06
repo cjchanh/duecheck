@@ -4,6 +4,7 @@
 
 - Engine-spec hardening remains landed and green.
 - Release-surface blockers are fixed locally and validated against a built wheel.
+- CLI UX surface for `init`, `doctor`, and `redact` is implemented locally and validated.
 - Release readiness: `READY TO PUSH+TAG`
 
 ## Release-Surface Commits Landed
@@ -58,12 +59,40 @@
 - Repo state target: clean after final docs closeout
 - Release readiness: `READY TO PUSH+TAG`
 
+## CLI UX Surface Status
+
+- CLI UX commits landed:
+  - `464725a` — `feat(cli): add config resolution, init, doctor, and redact`
+  - `dbe1509` — `docs: document init, doctor, redact, and config precedence`
+- Token-in-config implemented: `yes`
+  - `duecheck init` can save `canvas_token` when the user explicitly confirms or passes `--yes` with `--canvas-token`
+  - stored tokens remain plaintext on disk by design
+- Config precedence:
+  - `CLI > env > config > hard default`
+- `redact` report regeneration working: `yes`
+  - `duecheck redact` now writes `ledger.json`, `delta.json`, `risk.json`, `changes.md`, `pulled_at.txt`, and `report.html`
+  - the redacted bundle validates with `duecheck verify`
+  - the redacted bundle re-renders with `duecheck report --html`
+- Final test count: `102`
+
+## CLI UX Batch Notes
+
+- Added `duecheck/config.py` for config discovery, JSON persistence, and runtime resolution.
+- Added `duecheck init` for local default setup without repeated flag entry.
+- Added `duecheck doctor` for local config, token-source, asset, output-dir, and artifact diagnostics.
+- Added `duecheck redact` for deterministic redacted bug-report bundles.
+- Preserved engine computation contracts; this change only widened CLI UX and redaction support around the hardened engine.
+
 ## Deferred
 
 - Real README screenshot asset
   Deferred. The README now has the required placeholder comment; the actual image capture can be added as a follow-up docs pass.
 - Push/tag execution
   Deferred by explicit session boundary. This run stops at local release readiness and does not push or tag.
+- Scheduling work
+  Deferred. Not scoped to CLI UX surface.
+- Extension work
+  Deferred. Not scoped to CLI UX surface.
 
 ## Active Invariants Held
 

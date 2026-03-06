@@ -1,0 +1,8 @@
+{
+  "batch": "cli-ux-surface",
+  "tests": "102 passed",
+  "lint": "All checks passed",
+  "token_in_config": true,
+  "config_precedence": "CLI > env > config > hard default",
+  "redact_regenerates_report_html": true
+}
