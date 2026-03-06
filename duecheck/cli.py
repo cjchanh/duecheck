@@ -8,6 +8,7 @@ import json
 import os
 import sys
 import tempfile
+import webbrowser
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable
@@ -145,6 +146,17 @@ def _write_pull_artifacts(
     )
 
 
+def _open_report_in_browser(report_path: Path) -> bool:
+    if not report_path.exists():
+        print(f"WARN: report unavailable at {report_path}; --open skipped", file=sys.stderr)
+        return False
+    try:
+        return bool(webbrowser.open(report_path.resolve().as_uri()))
+    except webbrowser.Error as exc:
+        print(f"WARN: failed to open browser for {report_path}: {exc}", file=sys.stderr)
+        return False
+
+
 def _available_run_snapshots(out_dir: Path) -> list[tuple[str, Path]]:
     runs_dir = out_dir / "runs"
     if not runs_dir.exists():
@@ -254,6 +266,12 @@ def parse_demo_args(argv: list[str] | None = None) -> argparse.Namespace:
         dest="json_output",
         help="Output summary as JSON instead of human-readable text",
     )
+    parser.add_argument(
+        "--open",
+        action="store_true",
+        dest="open_browser",
+        help="Open the generated report in your default browser",
+    )
     return parser.parse_args(argv)
 
 
@@ -282,6 +300,12 @@ def parse_report_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         dest="json_output",
         help="Output summary as JSON instead of human-readable text",
+    )
+    parser.add_argument(
+        "--open",
+        action="store_true",
+        dest="open_browser",
+        help="Open the generated HTML report in your default browser",
     )
     return parser.parse_args(argv)
 
@@ -445,7 +469,7 @@ def run_repair(out_dir: Path) -> dict:
     }
 
 
-def run_demo(out_dir: Path) -> dict:
+def run_demo(out_dir: Path, *, open_browser: bool = False) -> dict:
     bundle = _load_demo_bundle()
     pulled_ts = str(bundle.get("pulled_at") or "")
     raw_ledger = bundle.get("ledger")
@@ -476,6 +500,7 @@ def run_demo(out_dir: Path) -> dict:
         risk=risk,
     )
     report_path = write_report_html(out_dir)
+    opened_browser = _open_report_in_browser(report_path) if open_browser else False
     risk_payload = serialize_payload(risk)
 
     return {
@@ -483,21 +508,30 @@ def run_demo(out_dir: Path) -> dict:
         "pulled_at": pulled_ts,
         "out_dir": str(out_dir),
         "report_html": str(report_path),
+        "opened_browser": opened_browser,
         "ledger_entries": len(ledger),
         "risk_overall": risk_payload.get("overall", "UNKNOWN"),
     }
 
 
-def run_report(out_dir: Path, *, html: bool, output_path: Path | None = None) -> dict:
+def run_report(
+    out_dir: Path,
+    *,
+    html: bool,
+    output_path: Path | None = None,
+    open_browser: bool = False,
+) -> dict:
     if not html:
         raise RuntimeError("Only --html is currently supported")
 
     report_path = write_report_html(out_dir, output_path)
+    opened_browser = _open_report_in_browser(report_path) if open_browser else False
     return {
         "status": "report_ready",
         "format": "html",
         "out_dir": str(out_dir),
         "output": str(report_path),
+        "opened_browser": opened_browser,
     }
 
 
@@ -535,7 +569,7 @@ def main(argv: list[str] | None = None) -> int:
         args = parse_demo_args(argv[1:])
         out_dir = Path(args.out_dir).expanduser().resolve()
         try:
-            result = run_demo(out_dir)
+            result = run_demo(out_dir, open_browser=args.open_browser)
         except Exception as exc:
             print(f"ERROR: {exc}", file=sys.stderr)
             return 1
@@ -574,7 +608,12 @@ def main(argv: list[str] | None = None) -> int:
         out_dir = Path(args.out_dir).expanduser().resolve()
         output_path = Path(args.output).expanduser().resolve() if args.output else None
         try:
-            result = run_report(out_dir, html=args.html, output_path=output_path)
+            result = run_report(
+                out_dir,
+                html=args.html,
+                output_path=output_path,
+                open_browser=args.open_browser,
+            )
         except Exception as exc:
             print(f"ERROR: {exc}", file=sys.stderr)
             return 1

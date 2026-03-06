@@ -174,7 +174,32 @@ def test_run_report_writes_html(tmp_path: Path):
     assert result["status"] == "report_ready"
     assert output_path.exists()
     html = output_path.read_text()
-    assert "What changed. What matters." in html
+    assert "What changed since your last check." in html
+
+
+def test_threat_open_flag_noop_without_flag(tmp_path: Path):
+    with patch("duecheck.cli.webbrowser.open") as open_browser:
+        run_demo(tmp_path)
+    open_browser.assert_not_called()
+
+
+def test_run_demo_open_flag_calls_browser(tmp_path: Path):
+    with patch("duecheck.cli.webbrowser.open", return_value=True) as open_browser:
+        result = run_demo(tmp_path, open_browser=True)
+
+    open_browser.assert_called_once()
+    assert result["opened_browser"] is True
+
+
+def test_run_report_open_flag_calls_browser(tmp_path: Path):
+    run_demo(tmp_path)
+    output_path = tmp_path / "site" / "index.html"
+
+    with patch("duecheck.cli.webbrowser.open", return_value=True) as open_browser:
+        result = run_report(tmp_path, html=True, output_path=output_path, open_browser=True)
+
+    open_browser.assert_called_once()
+    assert result["opened_browser"] is True
 
 
 def test_main_report_requires_html(tmp_path: Path):
