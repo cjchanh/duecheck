@@ -3,9 +3,9 @@
 __version__ = "0.1.0"
 
 from .adapter import CanvasAdapter
-from .delta import build_delta, render_delta_markdown
+from .delta import build_delta
 from .ledger import build_ledger, load_existing_ledger
-from .report import load_report_context, render_report_html, write_report_html
+from .renderers import load_report_context, render_delta_markdown, render_report_html, write_report_html
 from .risk import compute_overall_risk, score_course_risk
 from .types import AssignmentObservation, CourseInfo, LMSAdapter
 
