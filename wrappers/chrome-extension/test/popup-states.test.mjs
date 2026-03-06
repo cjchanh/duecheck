@@ -23,6 +23,7 @@ function createDocumentHarness() {
     "cards-panel",
     "sync-panel",
     "sync-now",
+    "toggle-settings",
     "api-base-url",
     "access-token",
   ]) {
@@ -58,6 +59,22 @@ test("test_ready_state_renders_assignments", () => {
 
   assert.equal(model.state, POPUP_STATES.ready);
   assert.match(renderTodayMarkup(model.todaySections), /Essay 1/);
+});
+
+test("test_ready_state_can_show_settings_when_requested", () => {
+  const model = buildPopupRenderModel(
+    {
+      settings: { apiBaseUrl: "https://canvas.example.edu", accessToken: "token" },
+      assignments: [{ courseId: 101, courseName: "English", name: "Essay 1", dueAt: "2026-03-07T12:00:00Z" }],
+      syncError: null,
+      lastSuccessAt: "2026-03-06T10:00:00Z",
+    },
+    { settingsVisible: true },
+  );
+
+  assert.equal(model.state, POPUP_STATES.ready);
+  assert.equal(model.showSettings, true);
+  assert.equal(model.settingsToggleLabel, "Hide Connection");
 });
 
 test("test_stale_with_error_shows_data_and_banner", () => {
@@ -97,6 +114,7 @@ test("threat_token_never_rendered_back_to_popup", () => {
 
   assert.equal(documentRef.getElementById("access-token").value, "");
   assert.equal(documentRef.getElementById("api-base-url").value, "https://canvas.example.edu");
+  assert.equal(documentRef.getElementById("toggle-settings").textContent, "Change Connection");
 });
 
 test("threat_no_console_log_of_token", async () => {

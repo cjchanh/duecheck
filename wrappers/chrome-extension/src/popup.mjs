@@ -139,7 +139,7 @@ function buildBanner(state, syncError) {
 
 export function buildPopupRenderModel(
   { settings = null, assignments = [], syncError = null, lastSuccessAt = null, lastAttemptAt = null },
-  { now = defaultNow(), uiError = null } = {},
+  { now = defaultNow(), uiError = null, settingsVisible = false } = {},
 ) {
   const state = derivePopupState({ settings, assignments, syncError, lastSuccessAt });
   const view = buildPopupViewModel({ assignments, lastSuccessAt, syncError }, { mode: "live", now });
@@ -156,7 +156,9 @@ export function buildPopupRenderModel(
     lastSyncLine: lastSuccessAt ? `Last sync: ${formatRelativeTime(lastSuccessAt, now)}` : "Last sync: never",
     lastAttemptLine: lastAttemptAt ? `Last attempt: ${formatRelativeTime(lastAttemptAt, now)}` : "Last attempt: never",
     laterCount: view.laterCount ?? 0,
-    showSettings: state === POPUP_STATES.noCredentials || state === POPUP_STATES.errorNoData,
+    showSettings: state === POPUP_STATES.noCredentials || state === POPUP_STATES.errorNoData || settingsVisible,
+    showSettingsToggle: state !== POPUP_STATES.noCredentials,
+    settingsToggleLabel: settingsVisible ? "Hide Connection" : "Change Connection",
     showSyncButton: state !== POPUP_STATES.noCredentials,
     emptyMessage:
       state === POPUP_STATES.empty
@@ -204,6 +206,9 @@ export function renderPopupDocument(documentRef, model) {
   setHidden(documentRef.getElementById("cards-panel"), model.showSettings);
   setHidden(documentRef.getElementById("sync-panel"), false);
   setHidden(documentRef.getElementById("sync-now"), !model.showSyncButton);
+  const toggleButton = documentRef.getElementById("toggle-settings");
+  setHidden(toggleButton, !model.showSettingsToggle);
+  toggleButton.textContent = model.settingsToggleLabel;
 
   const apiBaseUrlInput = documentRef.getElementById("api-base-url");
   const accessTokenInput = documentRef.getElementById("access-token");
@@ -274,14 +279,16 @@ export async function bootPopup({
 } = {}) {
   const settingsForm = documentRef.getElementById("settings-form");
   const syncButton = documentRef.getElementById("sync-now");
+  const toggleSettingsButton = documentRef.getElementById("toggle-settings");
   const apiBaseUrlInput = documentRef.getElementById("api-base-url");
   const accessTokenInput = documentRef.getElementById("access-token");
 
   let uiError = null;
+  let settingsVisible = false;
 
   async function render() {
     const data = await loadPopupData(chromeApi);
-    const model = buildPopupRenderModel(data, { now: now(), uiError });
+    const model = buildPopupRenderModel(data, { now: now(), uiError, settingsVisible });
     renderPopupDocument(documentRef, model);
   }
 
@@ -297,6 +304,8 @@ export async function bootPopup({
       });
       if (!result.ok) {
         uiError = result.error;
+      } else {
+        settingsVisible = false;
       }
     } catch (error) {
       uiError = error instanceof Error ? error.message : String(error);
@@ -304,6 +313,12 @@ export async function bootPopup({
       accessTokenInput.value = "";
       await render();
     }
+  });
+
+  toggleSettingsButton.addEventListener("click", async () => {
+    settingsVisible = !settingsVisible;
+    uiError = null;
+    await render();
   });
 
   syncButton.addEventListener("click", async () => {
