@@ -10,7 +10,7 @@
       "due_at": "2026-02-28T23:59:00Z",
       "date": "2026-02-28",
       "confidence": "high",
-      "first_seen": "2026-03-05T12:00:00Z",
+      "first_seen": "2026-03-03T12:00:00Z",
       "last_seen": "2026-03-05T12:00:00Z"
     },
     {
@@ -46,7 +46,7 @@
       "due_at": "2026-03-10T12:00:00Z",
       "date": "2026-03-10",
       "confidence": "medium",
-      "first_seen": "2026-03-05T12:00:00Z",
+      "first_seen": "2026-03-03T12:00:00Z",
       "last_seen": "2026-03-05T12:00:00Z"
     },
     {
@@ -65,26 +65,30 @@
   "delta": {
     "pulled_at": "2026-03-05T12:00:00Z",
     "counts": {
-      "new": 4,
+      "new": 2,
       "reactivated": 0,
+      "became_missing": 1,
       "escalated": 1,
-      "de_escalated": 0,
+      "de_escalated": 1,
       "cleared": 0,
       "unchanged_active": 0,
-      "unchanged_inactive": 0
+      "unchanged_inactive": 0,
+      "deadline_moved_earlier": 0,
+      "deadline_moved_later": 1
     },
     "changes": [
       {
         "item_id": "asg_canvas_demo_5001",
         "name": "Quiz 5",
         "course": "Philosophy",
-        "change_type": "new",
-        "from_status": "absent",
+        "change_type": "became_missing",
+        "from_status": "due_48h",
         "to_status": "missing",
-        "from_due_at": "",
+        "from_due_at": "2026-02-28T23:59:00Z",
         "to_due_at": "2026-02-28T23:59:00Z",
-        "due_at_changed": true,
-        "first_seen": "2026-03-05T12:00:00Z",
+        "due_at_changed": false,
+        "deadline_change": "",
+        "first_seen": "2026-03-03T12:00:00Z",
         "last_seen": "2026-03-05T12:00:00Z",
         "confidence": "high"
       },
@@ -98,6 +102,7 @@
         "from_due_at": "2026-03-06T08:00:00Z",
         "to_due_at": "2026-03-06T08:00:00Z",
         "due_at_changed": false,
+        "deadline_change": "",
         "first_seen": "2026-03-03T12:00:00Z",
         "last_seen": "2026-03-05T12:00:00Z",
         "confidence": "high"
@@ -112,6 +117,7 @@
         "from_due_at": "",
         "to_due_at": "2026-03-07T00:00:00Z",
         "due_at_changed": true,
+        "deadline_change": "",
         "first_seen": "2026-03-05T12:00:00Z",
         "last_seen": "2026-03-05T12:00:00Z",
         "confidence": "high"
@@ -120,13 +126,14 @@
         "item_id": "asg_canvas_demo_5004",
         "name": "Essay 3 Draft",
         "course": "English Composition",
-        "change_type": "new",
-        "from_status": "absent",
+        "change_type": "de_escalated",
+        "from_status": "due_48h",
         "to_status": "due_7d",
-        "from_due_at": "",
+        "from_due_at": "2026-03-08T12:00:00Z",
         "to_due_at": "2026-03-10T12:00:00Z",
         "due_at_changed": true,
-        "first_seen": "2026-03-05T12:00:00Z",
+        "deadline_change": "deadline_moved_later",
+        "first_seen": "2026-03-03T12:00:00Z",
         "last_seen": "2026-03-05T12:00:00Z",
         "confidence": "medium"
       },
@@ -140,6 +147,7 @@
         "from_due_at": "",
         "to_due_at": "2026-03-11T12:00:00Z",
         "due_at_changed": true,
+        "deadline_change": "",
         "first_seen": "2026-03-05T12:00:00Z",
         "last_seen": "2026-03-05T12:00:00Z",
         "confidence": "medium"
