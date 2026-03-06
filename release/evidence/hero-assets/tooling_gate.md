@@ -6,7 +6,8 @@
 
 ## Gate Result
 
-No supported capture tooling was available in this environment for autonomous hero-asset generation.
+Initial gate result: no supported capture tooling was available in this environment for autonomous hero-asset generation.
+Follow-up result: the explicit install block was run, `vhs` and Playwright became available, and the real hero assets were captured. See `capture_notes.md`.
 
 ## Commands
 
@@ -35,7 +36,12 @@ venv_playwright_py False
 
 ## Batch Decision
 
-- Create `docs/assets/`
-- Wire README hero asset slots to the intended paths
-- Add capture template/notes
-- Defer real screenshot and GIF generation in `STATE_REPORT.md`
+- Initial pass:
+  - create `docs/assets/`
+  - wire README hero asset slots to the intended paths
+  - add capture template/notes
+  - defer real screenshot and GIF generation in `STATE_REPORT.md`
+- Follow-up pass after tool install:
+  - generate `docs/assets/report-demo.png`
+  - generate `docs/assets/demo-flow.gif`
+  - replace README placeholders with real media
