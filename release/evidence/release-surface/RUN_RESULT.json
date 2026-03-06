@@ -1,0 +1,14 @@
+{
+  "baseline_tests": 80,
+  "final_tests": 85,
+  "schemas_relocated": true,
+  "open_flag_landed": true,
+  "local_build_passed": true,
+  "twine_check_passed": true,
+  "fresh_venv_smoke_passed": true,
+  "release_readiness": "READY TO PUSH+TAG",
+  "deferred": [
+    "real README screenshot asset",
+    "push/tag held outside this session"
+  ]
+}
