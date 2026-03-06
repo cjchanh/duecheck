@@ -1,0 +1,10 @@
+12e2788 docs(assets): wire hero asset slots and capture template
+db73490 docs: update STATE_REPORT and CLI UX verification artifacts
+dbe1509 docs: document init, doctor, redact, and config precedence
+464725a feat(cli): add config resolution, init, doctor, and redact
+448c547 docs: update STATE_REPORT for release-surface readiness
+0f77e0f ci(release): add pinned release workflow and smoke gate
+7e62bc9 docs: rewrite README for student-first release surface
+ca9d435 feat(report): add Today section and --open support
+31f4069 refactor(packaging): relocate schemas into package and include in wheel
+1073167 docs: add engine-spec hardening state report and verification artifacts
