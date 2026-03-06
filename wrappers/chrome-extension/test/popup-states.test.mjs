@@ -5,6 +5,7 @@ import {
   POPUP_STATES,
   buildPopupRenderModel,
   permissionOriginForBaseUrl,
+  renderChangesMarkup,
   renderPopupDocument,
   renderTodayMarkup,
   saveSettings,
@@ -16,11 +17,13 @@ function createDocumentHarness() {
     "mode-line",
     "cards",
     "today",
+    "changes",
     "sync-meta",
     "status-banner",
     "settings-panel",
     "today-panel",
     "cards-panel",
+    "changes-panel",
     "sync-panel",
     "sync-now",
     "toggle-settings",
@@ -52,13 +55,17 @@ test("test_no_credentials_shows_settings", () => {
 test("test_ready_state_renders_assignments", () => {
   const model = buildPopupRenderModel({
     settings: { apiBaseUrl: "https://canvas.example.edu", accessToken: "token" },
+    activeCourseCount: 3,
     assignments: [{ courseId: 101, courseName: "English", name: "Essay 1", dueAt: "2026-03-07T12:00:00Z" }],
+    changes: [{ changeType: "new", fromBucket: "absent", toBucket: "due_48h", courseName: "English", name: "Essay 1", toDueAt: "2026-03-07T12:00:00Z" }],
+    changeCounts: { new: 1 },
     syncError: null,
     lastSuccessAt: "2026-03-06T10:00:00Z",
   });
 
   assert.equal(model.state, POPUP_STATES.ready);
   assert.match(renderTodayMarkup(model.todaySections), /Essay 1/);
+  assert.match(renderChangesMarkup(model.changeGroups), /Essay 1/);
 });
 
 test("test_ready_state_can_show_settings_when_requested", () => {
@@ -81,6 +88,8 @@ test("test_stale_with_error_shows_data_and_banner", () => {
   const model = buildPopupRenderModel({
     settings: { apiBaseUrl: "https://canvas.example.edu", accessToken: "token" },
     assignments: [{ courseId: 101, courseName: "English", name: "Essay 1", dueAt: "2026-03-07T12:00:00Z" }],
+    changes: [],
+    changeCounts: {},
     syncError: "Canvas API request failed: 500",
     lastSuccessAt: "2026-03-06T10:00:00Z",
   });
@@ -94,6 +103,8 @@ test("test_error_no_data_shows_error_state", () => {
   const model = buildPopupRenderModel({
     settings: { apiBaseUrl: "https://canvas.example.edu", accessToken: "token" },
     assignments: [],
+    changes: [],
+    changeCounts: {},
     syncError: "Canvas API request failed: 401",
   });
 
@@ -106,6 +117,8 @@ test("threat_token_never_rendered_back_to_popup", () => {
   const model = buildPopupRenderModel({
     settings: { apiBaseUrl: "https://canvas.example.edu", accessToken: "secret-token" },
     assignments: [],
+    changes: [],
+    changeCounts: {},
     syncError: null,
     lastSuccessAt: "2026-03-06T10:00:00Z",
   });
@@ -115,6 +128,10 @@ test("threat_token_never_rendered_back_to_popup", () => {
   assert.equal(documentRef.getElementById("access-token").value, "");
   assert.equal(documentRef.getElementById("api-base-url").value, "https://canvas.example.edu");
   assert.equal(documentRef.getElementById("toggle-settings").textContent, "Change Connection");
+});
+
+test("test_changes_markup_shows_empty_message_without_changes", () => {
+  assert.match(renderChangesMarkup([]), /No changes since the last successful sync/);
 });
 
 test("threat_no_console_log_of_token", async () => {

@@ -97,6 +97,40 @@ export function renderTodayMarkup(todaySections) {
     .join("")}</div>`;
 }
 
+export function renderChangesMarkup(changeGroups) {
+  const groups = (changeGroups ?? []).filter((group) => group.items.length);
+  if (!groups.length) {
+    return '<p class="empty">No changes since the last successful sync.</p>';
+  }
+
+  return `<div class="stack">${groups
+    .map(
+      (group) => `
+        <div class="change-group">
+          <div class="today-head">
+            <h3>${escapeHtml(group.title)}</h3>
+            <span class="meta">${group.items.length}</span>
+          </div>
+          <ul class="change-list">${group.items
+            .map(
+              (item) => `
+                <li class="change-item">
+                  <div class="item-top">
+                    <strong>${escapeHtml(item.name)}</strong>
+                    <span class="meta">${escapeHtml(item.due)}</span>
+                  </div>
+                  <div class="item-meta">${escapeHtml(item.course)} · ${escapeHtml(item.transition)}</div>
+                  ${item.deadlineChange ? `<div class="item-meta">${escapeHtml(item.deadlineChange)}</div>` : ""}
+                </li>
+              `,
+            )
+            .join("")}</ul>
+        </div>
+      `,
+    )
+    .join("")}</div>`;
+}
+
 export function derivePopupState({ settings, assignments, syncError, lastSuccessAt }) {
   const hasSettings = Boolean(String(settings?.apiBaseUrl ?? "").trim() && String(settings?.accessToken ?? "").trim());
   const hasAssignments = Array.isArray(assignments) && assignments.length > 0;
@@ -138,11 +172,23 @@ function buildBanner(state, syncError) {
 }
 
 export function buildPopupRenderModel(
-  { settings = null, assignments = [], syncError = null, lastSuccessAt = null, lastAttemptAt = null },
+  {
+    settings = null,
+    activeCourseCount = 0,
+    assignments = [],
+    changes = [],
+    changeCounts = null,
+    syncError = null,
+    lastSuccessAt = null,
+    lastAttemptAt = null,
+  },
   { now = defaultNow(), uiError = null, settingsVisible = false } = {},
 ) {
   const state = derivePopupState({ settings, assignments, syncError, lastSuccessAt });
-  const view = buildPopupViewModel({ assignments, lastSuccessAt, syncError }, { mode: "live", now });
+  const view = buildPopupViewModel(
+    { activeCourseCount, assignments, changes, changeCounts, lastSuccessAt, syncError },
+    { mode: "live", now },
+  );
   const banner = uiError
     ? { tone: "warning", message: uiError }
     : buildBanner(state, syncError);
@@ -152,6 +198,7 @@ export function buildPopupRenderModel(
     modeLine: state === POPUP_STATES.noCredentials ? "Live Canvas sync is not configured yet." : view.modeLine,
     cards: state === POPUP_STATES.noCredentials ? [] : view.cards,
     todaySections: state === POPUP_STATES.noCredentials ? [] : view.todaySections,
+    changeGroups: state === POPUP_STATES.noCredentials ? [] : view.changeGroups,
     banner,
     lastSyncLine: lastSuccessAt ? `Last sync: ${formatRelativeTime(lastSuccessAt, now)}` : "Last sync: never",
     lastAttemptLine: lastAttemptAt ? `Last attempt: ${formatRelativeTime(lastAttemptAt, now)}` : "Last attempt: never",
@@ -183,6 +230,7 @@ export function renderPopupDocument(documentRef, model) {
   documentRef.getElementById("mode-line").textContent = model.modeLine;
   documentRef.getElementById("cards").innerHTML = renderCards(model.cards);
   documentRef.getElementById("today").innerHTML = renderTodayMarkup(model.todaySections);
+  documentRef.getElementById("changes").innerHTML = renderChangesMarkup(model.changeGroups);
   documentRef.getElementById("sync-meta").innerHTML = `
     <p>${escapeHtml(model.lastSyncLine)}</p>
     <p>${escapeHtml(model.lastAttemptLine)}</p>
@@ -204,6 +252,7 @@ export function renderPopupDocument(documentRef, model) {
   setHidden(documentRef.getElementById("settings-panel"), !model.showSettings);
   setHidden(documentRef.getElementById("today-panel"), model.showSettings);
   setHidden(documentRef.getElementById("cards-panel"), model.showSettings);
+  setHidden(documentRef.getElementById("changes-panel"), model.showSettings);
   setHidden(documentRef.getElementById("sync-panel"), false);
   setHidden(documentRef.getElementById("sync-now"), !model.showSyncButton);
   const toggleButton = documentRef.getElementById("toggle-settings");
@@ -264,7 +313,10 @@ export async function saveSettings({
 export async function loadPopupData(chromeApi = chrome) {
   return chromeApi.storage.local.get([
     "settings",
+    "activeCourseCount",
     "assignments",
+    "changes",
+    "changeCounts",
     "syncError",
     "lastAttemptAt",
     "lastSuccessAt",

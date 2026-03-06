@@ -12,6 +12,14 @@ const CHANGE_ORDER = [
   ["de_escalated", "De-escalated"],
   ["cleared", "Cleared"],
 ];
+const LIVE_CHANGE_ORDER = [
+  ["new", "New"],
+  ["escalated", "Got Worse"],
+  ["deadline_moved_earlier", "Moved Earlier"],
+  ["cleared", "Cleared"],
+  ["de_escalated", "De-escalated"],
+  ["deadline_moved_later", "Moved Later"],
+];
 
 function toneForRisk(level) {
   return {
@@ -152,16 +160,24 @@ function summarizeAssignments(assignments, now) {
 
 function buildLiveViewModel(payload, { now = new Date() } = {}) {
   const assignments = Array.isArray(payload?.assignments) ? [...payload.assignments] : [];
+  const activeCourseCount = Number(payload?.activeCourseCount ?? 0);
+  const changes = Array.isArray(payload?.changes) ? payload.changes : [];
+  const changeCounts = payload?.changeCounts ?? {};
   const grouped = summarizeAssignments(assignments, now);
   const courseCount = new Set(assignments.map((assignment) => assignment.courseId ?? assignment.courseName)).size;
+  const gotWorse = Number(changeCounts.escalated ?? 0) + Number(changeCounts.deadline_moved_earlier ?? 0);
 
   return {
-    modeLine: "Live Canvas preview. Upcoming assignments only in this phase.",
+    modeLine: changes.length
+      ? "Live change detection is active for upcoming assignments."
+      : "Live Canvas preview. Upcoming assignment change detection is warming up.",
     cards: [
+      { label: "Active Courses", value: String(activeCourseCount), tone: "neutral" },
       { label: "Courses With Upcoming Work", value: String(courseCount), tone: "neutral" },
       { label: "Upcoming", value: String(assignments.length), tone: "neutral" },
       { label: "Due In 48 Hours", value: String(grouped.due48.length), tone: "warning" },
-      { label: "Due This Week", value: String(grouped.due7.length), tone: "safe" },
+      { label: "New", value: String(changeCounts.new ?? 0), tone: "safe" },
+      { label: "Got Worse", value: String(gotWorse), tone: gotWorse ? "warning" : "neutral" },
     ],
     todaySections: [
       {
@@ -184,7 +200,19 @@ function buildLiveViewModel(payload, { now = new Date() } = {}) {
       },
     ],
     laterCount: grouped.later.length,
-    changeGroups: [],
+    changeGroups: LIVE_CHANGE_ORDER.map(([changeType, title]) => ({
+      changeType,
+      title,
+      items: changes
+        .filter((item) => item.changeType === changeType)
+        .map((item) => ({
+          name: item.name,
+          course: item.courseName,
+          transition: `${item.fromBucket} → ${item.toBucket}`,
+          deadlineChange: item.deadlineChange || "",
+          due: formatDue(item.toDueAt || item.fromDueAt),
+        })),
+    })),
     courseRisks: [],
   };
 }
