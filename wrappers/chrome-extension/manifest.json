@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "DueCheck",
+  "version": "0.0.1",
+  "description": "A Chrome popup shell for the DueCheck Today board and change feed.",
+  "permissions": [
+    "storage"
+  ],
+  "background": {
+    "service_worker": "background.mjs",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "DueCheck",
+    "default_popup": "popup.html"
+  }
+}

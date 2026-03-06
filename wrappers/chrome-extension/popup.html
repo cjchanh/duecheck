@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>DueCheck</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <main class="shell">
+      <header class="hero">
+        <p class="eyebrow">DueCheck Extension Shell</p>
+        <h1>What changed since your last check.</h1>
+        <p class="copy" id="mode-line">Loading demo bundle…</p>
+        <div class="hero-actions">
+          <button id="reload-demo" type="button">Reload Demo</button>
+        </div>
+      </header>
+      <section class="cards" id="cards"></section>
+      <section class="panel">
+        <h2>Today</h2>
+        <div id="today"></div>
+      </section>
+      <section class="panel">
+        <h2>Change Feed</h2>
+        <div id="changes"></div>
+      </section>
+      <section class="panel">
+        <h2>Course Risk</h2>
+        <div id="course-risk"></div>
+      </section>
+    </main>
+    <script type="module" src="popup.mjs"></script>
+  </body>
+</html>
