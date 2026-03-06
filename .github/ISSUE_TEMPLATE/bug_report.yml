@@ -1,0 +1,50 @@
+name: Bug report
+description: Report a reproducible defect in the engine, CLI, or artifacts.
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What broke?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Include exact commands, inputs, and output paths.
+      placeholder: |
+        1. Run `duecheck ...`
+        2. Inspect `delta.json`
+        3. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: DueCheck version
+      placeholder: "0.1.0"
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Python version, OS, and whether this used real Canvas data or fixtures.
+  - type: textarea
+    id: artifacts
+    attributes:
+      label: Relevant artifacts
+      description: Paste sanitized snippets from `ledger.json`, `delta.json`, `risk.json`, or `changes.md`.
