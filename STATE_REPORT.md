@@ -5,6 +5,7 @@
 - Engine-spec hardening remains landed and green.
 - Release-surface blockers are fixed locally and validated against a built wheel.
 - CLI UX surface for `init`, `doctor`, and `redact` is implemented locally and validated.
+- Hero asset tooling gate completed; capture tooling is unavailable in the current environment.
 - Release readiness: `READY TO PUSH+TAG`
 
 ## Release-Surface Commits Landed
@@ -83,6 +84,21 @@
 - Added `duecheck redact` for deterministic redacted bug-report bundles.
 - Preserved engine computation contracts; this batch only widened CLI UX and redaction support around the hardened engine.
 
+## Hero Asset Gate Status
+
+- Hero asset paths reserved: `docs/assets/report-demo.png`, `docs/assets/demo-flow.gif`
+- README placement wired above the first code block: `yes`
+- Capture template added: `docs/assets/CAPTURE_TEMPLATE.md`
+- Capture tool gate result:
+  - `vhs`: unavailable
+  - `playwright` CLI: unavailable
+  - `asciinema`: unavailable
+  - Python Playwright module: unavailable in both system Python and repo venv
+- Batch result: fallback-only
+  - asset wiring landed
+  - capture notes/template landed
+  - real screenshot/GIF capture deferred
+
 ## Deferred
 
 - Real README screenshot asset
@@ -93,6 +109,10 @@
   Deferred. Not part of the CLI UX surface batch.
 - Extension work
   Deferred. Not part of the CLI UX surface batch.
+- Hero screenshot capture
+  Deferred. No supported screenshot tooling was available locally in this batch.
+- Hero GIF capture
+  Deferred. No supported terminal capture tooling was available locally in this batch.
 
 ## Active Invariants Held
 
